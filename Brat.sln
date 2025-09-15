@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Brat", "Brat\Brat.csproj", "{77047D02-1CD0-46A2-AA29-F1D6101A594F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{77047D02-1CD0-46A2-AA29-F1D6101A594F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{77047D02-1CD0-46A2-AA29-F1D6101A594F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{77047D02-1CD0-46A2-AA29-F1D6101A594F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{77047D02-1CD0-46A2-AA29-F1D6101A594F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3CD70D55-8ED5-4029-9F7C-AC8ABE227FC2}
+	EndGlobalSection
+EndGlobal
