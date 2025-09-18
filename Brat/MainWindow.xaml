@@ -6,7 +6,8 @@
         xmlns:local="clr-namespace:Brat"
         mc:Ignorable="d"
         Title="MainWindow" Height="1000" Width="1800" WindowStartupLocation="CenterScreen">
-    <Grid Background="#FF2D2D2D">
+
+        <Grid Background="#FF2D2D2D">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="250"/>
             <ColumnDefinition Width="*"/>
