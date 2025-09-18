@@ -9,7 +9,49 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Fonts\SF-Pro-Rounded-Black.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Bold.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Heavy.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Light.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Medium.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Regular.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Semibold.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Thin.otf" />
+    <None Remove="Fonts\SF-Pro-Rounded-Ultralight.otf" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Fonts\SF-Pro-Rounded-Black.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Bold.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Heavy.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Light.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Medium.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Regular.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Semibold.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Thin.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\SF-Pro-Rounded-Ultralight.otf">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>

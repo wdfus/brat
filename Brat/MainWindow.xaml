@@ -19,7 +19,7 @@
         <DockPanel Grid.RowSpan="3">
             <!-- Левая панель -->
             <Border Grid.RowSpan="3" Grid.Column="0" Background="#FF3A3A3A" RenderTransformOrigin="0.5,0.5">
-                
+
                 <StackPanel>
                     <Button Content="Я даун" Width="40" Height="40" Margin="5" DockPanel.Dock="Top"/>
                     <StackPanel Orientation="Vertical"/>
@@ -27,14 +27,19 @@
             </Border>
             <Border Grid.RowSpan="3" Grid.Column="0" Background="#FF3A3A3A">
                 <StackPanel>
-                    <Button Content="Я даун" Width="40" Height="40" Margin="5" DockPanel.Dock="Top"/>
+                    <Button Content="Я даун" Width="40" Height="40" Margin="5" DockPanel.Dock="Top" FontFamily=""/>
                     <StackPanel Orientation="Vertical">
-                        <Grid Height="30" Background="AliceBlue" />
-                        <Separator Height="0.5" Margin="0"/>                        <Grid Height="30" Background="AliceBlue" />
-                        <Separator Height="0.5" Margin="0"/>                        <Grid Height="30" Background="AliceBlue" />
-                        <Separator Height="0.5" Margin="0"/>                        <Grid Height="30" Background="AliceBlue" />
-                        <Separator Height="0.5" Margin="0"/>                        <Grid Height="30" Background="AliceBlue" />
-                        <Separator Height="0.5" Margin="0"/>                        <Grid Height="30" Background="AliceBlue" />
+                        <DockPanel Height="57" Background="AliceBlue">
+                            <Ellipse Fill="Red" Height="40" Width="40" Margin="3, 0, 3, 0"/>
+                            <StackPanel DockPanel.Dock="Left" Width="117">
+                                <TextBlock TextWrapping="Wrap" Text="Ваня" FontSize="8" FontWeight="Bold" FontFamily="Algerian" Height="23"/>
+                                <TextBlock Text="привет! меня зовут хуила" FontSize="10" Height="19"/>
+                            </StackPanel>
+                            <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0, 5, 2, 0" Orientation="Horizontal">
+                                <TextBlock Text="^^" FontSize="8" Margin="0, 0, 3, 0"/>
+                                <TextBlock Text="12:28" FontSize="8"/>
+                            </StackPanel>
+                        </DockPanel>
                         <Separator Height="0.5" Margin="0"/>
                     </StackPanel>
                 </StackPanel>
