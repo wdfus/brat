@@ -7,72 +7,219 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="1000" Width="1800" WindowStartupLocation="CenterScreen">
 
-        <Grid Background="#FF2D2D2D">
+    <Grid Background="#FF2D2D2D">
+        Title="Brat" Height="1000" Width="1800" WindowStartupLocation="CenterScreen"
+        Background="#2D2D2D">
+    <Window.Resources>
+        <!-- Палитра -->
+        <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
+        <SolidColorBrush x:Key="Col.Side"      Color="#3A3A3A"/>
+        <SolidColorBrush x:Key="Col.Top"       Color="#444444"/>
+        <SolidColorBrush x:Key="Col.Input"     Color="#444444"/>
+        <SolidColorBrush x:Key="Col.BubbleL"   Color="#E6E6E6"/>
+        <SolidColorBrush x:Key="Col.BubbleR"   Color="#0078D7"/>
+        <SolidColorBrush x:Key="Col.White"     Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Col.TextMain"  Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Col.Muted"     Color="#BDBDBD"/>
+
+        <!-- Кнопка-иконка (круг) -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Background" Value="{StaticResource Col.Side}"/>
+            <Setter Property="BorderBrush" Value="#575757"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource Col.White}"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="18"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Элемент чата в левом списке -->
+        <DataTemplate x:Key="ChatItemTemplate">
+            <Grid Margin="8,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="44"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Ellipse Fill="#D9D9D9" Width="44" Height="44"/>
+                <StackPanel Grid.Column="1" Margin="10,0,8,0">
+                    <Rectangle Height="10" RadiusX="5" RadiusY="5" Fill="#D9D9D9" Width="120"/>
+                    <Rectangle Height="8" RadiusX="4" RadiusY="4" Fill="#C8C8C8" Margin="0,6,0,0" Width="160"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Top">
+                    <Rectangle Height="8" RadiusX="4" RadiusY="4" Fill="#C8C8C8" Width="28" Margin="0,2,0,0"/>
+                    <Rectangle Height="8" RadiusX="4" RadiusY="4" Fill="#C8C8C8" Width="18" Margin="0,6,0,0"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Пузырь сообщения слева -->
+        <Style x:Key="BubbleLeft" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Col.BubbleL}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <!-- Пузырь сообщения справа -->
+        <Style x:Key="BubbleRight" TargetType="Border" BasedOn="{StaticResource BubbleLeft}">
+            <Setter Property="Background" Value="{StaticResource Col.BubbleR}"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+
+        <!-- Убираем стандартный синій хайлайт у ListBox -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- Главная сетка: колонка сайдбара + колонка контента -->
+    <Grid Background="{StaticResource Col.AppBg}">
+>>>>>>> dfa78d88e510b7f201632d811448b88d6bbec636
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="300"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="60"/>
-        </Grid.RowDefinitions>
-        <DockPanel Grid.RowSpan="3">
-            <!-- Левая панель -->
-            <Border Grid.RowSpan="3" Grid.Column="0" Background="#FF3A3A3A" RenderTransformOrigin="0.5,0.5">
 
-                <StackPanel>
-                    <Button Content="Я даун" Width="40" Height="40" Margin="5" DockPanel.Dock="Top"/>
-                    <StackPanel Orientation="Vertical"/>
-                </StackPanel>
+        <!-- ===== ЛЕВЫЙ САЙДБАР ===== -->
+        <Grid Grid.Column="0" Background="{StaticResource Col.Side}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64"/>
+                <!-- поиск -->
+                <RowDefinition Height="*"/>
+                <!-- список чатов -->
+                <RowDefinition Height="56"/>
+                <!-- нижняя кнопка/иконка -->
+            </Grid.RowDefinitions>
+
+            <!-- Поиск -->
+            <Border Margin="12" Background="#4A4A4A" CornerRadius="20" Height="40" VerticalAlignment="Center">
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="24"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Ellipse Fill="#8A8A8A" Width="14" Height="14" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#D0D0D0"
+                               Text="Найти" FontSize="14"/>
+                </Grid>
             </Border>
-            <Border Grid.RowSpan="3" Grid.Column="0" Background="#FF3A3A3A">
-                <StackPanel>
-                    <Button Content="Я даун" Width="40" Height="40" Margin="5" DockPanel.Dock="Top" FontFamily=""/>
-                    <StackPanel Orientation="Vertical">
-                        <DockPanel Height="57" Background="AliceBlue">
-                            <Ellipse Fill="Red" Height="40" Width="40" Margin="3, 0, 3, 0"/>
-                            <StackPanel DockPanel.Dock="Left" Width="117">
-                                <TextBlock TextWrapping="Wrap" Text="Ваня" FontSize="8" FontWeight="Bold" FontFamily="Algerian" Height="23"/>
-                                <TextBlock Text="привет! меня зовут хуила" FontSize="10" Height="19"/>
-                            </StackPanel>
-                            <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0, 5, 2, 0" Orientation="Horizontal">
-                                <TextBlock Text="^^" FontSize="8" Margin="0, 0, 3, 0"/>
-                                <TextBlock Text="12:28" FontSize="8"/>
-                            </StackPanel>
-                        </DockPanel>
-                        <Separator Height="0.5" Margin="0"/>
+
+            <!-- Список чатов (скелетоны под макет) -->
+            <ListBox Grid.Row="1" ItemTemplate="{StaticResource ChatItemTemplate}" Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Hidden">
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+                <ListBoxItem/>
+            </ListBox>
+
+            <!-- Нижняя иконка (звёздочка/настройки и т.п.) -->
+            <Grid Grid.Row="2">
+                <Button Style="{StaticResource IconButton}" Content="★" ToolTip="Избранное" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0"/>
+            </Grid>
+        </Grid>
+
+        <!-- ===== ПРАВАЯ ЧАСТЬ: ШАПКА + СООБЩЕНИЯ + ВВОД ===== -->
+        <Grid Grid.Column="1" Background="#FFFFFF">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56"/>
+                <!-- шапка -->
+                <RowDefinition Height="*"/>
+                <!-- сообщения -->
+                <RowDefinition Height="64"/>
+                <!-- ввод -->
+            </Grid.RowDefinitions>
+
+            <!-- Шапка -->
+            <Border Grid.Row="0" Background="{StaticResource Col.Top}">
+                <Grid Margin="16,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Заголовок чата" Foreground="White" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconButton}" Content="…" Background="#505050"/>
+                        <Button Style="{StaticResource IconButton}" Content="≡" Background="#505050"/>
                     </StackPanel>
-                </StackPanel>
+                </Grid>
             </Border>
-        </DockPanel>
 
-        <!-- Шапка -->
-        <Border Grid.Column="1" Grid.Row="0" Background="#FF444444">
-            <TextBlock Text="Заголовок чата" VerticalAlignment="Center"
-                       Margin="10" Foreground="White" FontWeight="Bold"/>
-        </Border>
+            <!-- Сообщения -->
+            <ScrollViewer Grid.Row="1" Background="White" Padding="16" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Border Style="{StaticResource BubbleLeft}">
+                        <TextBlock Text="Привет!" Foreground="Black"/>
+                    </Border>
 
-        <!-- Сообщения -->
-        <ScrollViewer Grid.Column="1" Grid.Row="1" Background="White">
-            <StackPanel Margin="10">
-                <Border Background="#E6E6E6" CornerRadius="10" Padding="10" Margin="5" HorizontalAlignment="Left">
-                    <TextBlock Text="Привет!"/>
-                </Border>
-                <Border Background="#0078D7" CornerRadius="10" Padding="10" Margin="5" HorizontalAlignment="Right">
-                    <TextBlock Text="Здорово!" Foreground="White"/>
-                </Border>
-                <Border Background="#E6E6E6" CornerRadius="10" Padding="10" Margin="5" HorizontalAlignment="Left">
-                    <TextBlock Text="Как дела?"/>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+                    <Border Style="{StaticResource BubbleRight}">
+                        <TextBlock Text="Здорово!" Foreground="White"/>
+                    </Border>
 
-        <!-- Поле ввода -->
-        <DockPanel Grid.Column="1" Grid.Row="2" Background="#FF444444">
-            <TextBox Margin="10" VerticalAlignment="Center" Height="40"
-                     HorizontalAlignment="Stretch"/>
-            <Button Content="➤" Width="50" Margin="10" DockPanel.Dock="Right"/>
-        </DockPanel>
+                    <Border Style="{StaticResource BubbleLeft}">
+                        <TextBlock Text="Как дела?" Foreground="Black"/>
+                    </Border>
+
+                    <!-- Плашка «Непрочитанные сообщения» -->
+                    <Border Background="#666666" Height="24" Margin="0,12" HorizontalAlignment="Stretch">
+                        <TextBlock Text="Непрочитанные сообщения" Foreground="White"
+                                   FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    </Border>
+
+                    <Border Style="{StaticResource BubbleRight}">
+                        <TextBlock Text="Все отлично!" Foreground="White"/>
+                    </Border>
+
+                    <Border Style="{StaticResource BubbleLeft}">
+                        <TextBlock Text="Погнали дальше макет делать." Foreground="Black"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Поле ввода -->
+            <Border Grid.Row="2" Background="{StaticResource Col.Input}">
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="56"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <TextBox BorderThickness="0" Background="Transparent" Foreground="White"
+                                 Padding="12,8" FontSize="14" Text="Сообщение..."/>
+                    </Border>
+
+                    <Button Grid.Column="1" Content="➤" FontSize="18" FontWeight="Bold"
+                            Background="#5A5A5A" Foreground="White" BorderThickness="0"
+                            Width="56" Height="40" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
