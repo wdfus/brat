@@ -38,17 +38,19 @@
 
         <!-- Макет одного элемента чата -->
         <DataTemplate x:Key="ChatItemTemplate">
-            <Grid Margin="10,6,10,0">
+            <Grid Height="52" Margin="-6, 0, 0, 0" Width="301">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="42"/>
+                    <ColumnDefinition Width="52"/>
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Ellipse Width="36" Height="36" Fill="#D9D9D9" VerticalAlignment="Center"/>
-                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                    <StackPanel Height="10" Width="216">
-                        <TextBlock Text="ТЕКСТ" FontSize="8" FontWeight="Bold" Foreground="White"></TextBlock>
+                <Ellipse Width="42" Height="42" Fill="#D9D9D9" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                <StackPanel Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center">
+                    <StackPanel Height="15" Width="216" HorizontalAlignment="Left">
+                        <TextBlock Text="Грант Упизмо" FontSize="14" Foreground="#FFE2E2E2" FontFamily="SF Pro Rounded"/>
                     </StackPanel>
-                    <Rectangle Height="8"  Width="120" RadiusX="4" RadiusY="4" Fill="#C8C8C8" HorizontalAlignment="Left" Margin="0,6,0,0"/>
+                    <StackPanel Height="15" Width="216" Margin="0, 5, 0, 0" HorizontalAlignment="Left">
+                        <TextBlock Text="Иди нахуй" FontSize="14" FontWeight="Normal" Foreground="#FFA4A4A4" FontFamily="SF Pro Rounded"/>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </DataTemplate>
@@ -94,7 +96,7 @@
         </Grid.RowDefinitions>
 
         <!-- ВЕРХНЯЯ ПАНЕЛЬ — на всю ширину -->
-        <Border Grid.Row="0" Grid.ColumnSpan="3" Background="{StaticResource Col.Top}">
+        <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource Col.Top}">
             <Grid Margin="16,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -109,7 +111,7 @@
         </Border>
 
         <!-- ЛЕВЫЙ РЕЙЛ -->
-        <Grid Grid.Row="1" Grid.Column="0" Background="{StaticResource Col.Rail}">
+        <Grid Grid.RowSpan="3" Grid.Column="0" Background="{StaticResource Col.Rail}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -123,7 +125,7 @@
         </Grid>
 
         <!-- КОЛОНКА СО СПИСКОМ ЧАТОВ -->
-        <Grid Grid.Row="1" Grid.Column="1" Background="{StaticResource Col.Side}">
+        <Grid Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource Col.Side}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="56"/>
                 <RowDefinition Height="*"/>
@@ -162,16 +164,19 @@
                     </Border>
 
                     <!-- Разделитель «Непрочитанные сообщения» -->
-                    <Border Background="#666666" Height="24" Margin="0,12">
+                    <Border Background="#666666" Height="15" Margin="0,12">
                         <TextBlock Text="Непрочитанные сообщения" Foreground="White"
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </Border>
 
-                    <Border Style="{StaticResource BubbleRight}">
+                    <Border Style="{StaticResource BubbleRight}" HorizontalAlignment="Left">
                         <TextBlock Text="Все отлично!" Foreground="White"/>
                     </Border>
                     <Border Style="{StaticResource BubbleLeft}">
-                        <TextBlock Text="Погнали дальше макет делать." Foreground="Black"/>
+                        <TextBlock Text="Погнали дальше макет делать." Foreground="Black" x:Name="penisText"/>
+                    </Border>
+                    <Border Style="{StaticResource BubbleRight}" HorizontalAlignment="Left">
+                        <TextBlock Text="Ехала!" Foreground="White"/>
                     </Border>
                 </StackPanel>
             </ScrollViewer>

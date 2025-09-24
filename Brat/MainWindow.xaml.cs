@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using Brat.Models;
+using System.Diagnostics;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -19,6 +21,11 @@ namespace Brat
         public MainWindow()
         {
             InitializeComponent();
+            using (var context = new BratBaseContext())
+            {
+                var penis = context.Users.FirstOrDefault();
+                penisText.Text = penis.Username.ToString();
+            }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
