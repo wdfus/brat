@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Brat.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.Pkcs;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -18,11 +20,19 @@ namespace Brat
     /// <summary>
     /// Логика взаимодействия для receiver.xaml
     /// </summary>
-    public partial class receiver : UserControl
+    public partial class Receiver : UserControl
     {
-        public receiver()
+
+        public Receiver()
         {
             InitializeComponent();
+            this.HorizontalAlignment = HorizontalAlignment.Left;
+
+        }
+
+        public Receiver(string text) : this()
+        {
+            messageText.Text = text;
         }
     }
 }

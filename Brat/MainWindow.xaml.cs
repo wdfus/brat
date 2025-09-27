@@ -18,13 +18,28 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
+        int id = 1;
         public MainWindow()
         {
+
             InitializeComponent();
             using (var context = new BratBaseContext())
             {
-                var penis = context.Users.FirstOrDefault();
-                penisText.Text = penis.Username.ToString();
+                var jujun = context.Messages.ToList();
+                foreach (Message chat in jujun)
+                {
+                    if (id == chat.FromUserId)
+                    {
+                        var receiver = new Receiver(chat.MessageText.ToString());
+                        chatField.Children.Add(receiver);
+                    }
+                    else
+                    {
+                        var sender = new Sender(chat.MessageText.ToString());
+                        chatField.Children.Add(sender);
+                    }
+                }
+
             }
         }
 

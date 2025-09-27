@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Brat.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,11 +19,18 @@ namespace Brat
     /// <summary>
     /// Логика взаимодействия для sender.xaml
     /// </summary>
-    public partial class sender : UserControl
+    public partial class Sender : UserControl
     {
-        public sender()
+        public Sender()
         {
             InitializeComponent();
+            this.HorizontalAlignment = HorizontalAlignment.Left;
+
+        }
+
+        public Sender(string text) : this()
+        {
+            messageText.Text = text;
         }
     }
 }
