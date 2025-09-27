@@ -38,7 +38,7 @@
         </Style>
 
         <!-- Макет одного элемента чата -->
-        <DataTemplate x:Key="ChatItemTemplate">
+        <!--<DataTemplate x:Key="ChatItemTemplate">
             <Grid Height="52" Margin="-6, 0, 0, 0" Width="301">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="52"/>
@@ -54,7 +54,7 @@
                     </StackPanel>
                 </StackPanel>
             </Grid>
-        </DataTemplate>
+        </DataTemplate>-->
 
         <!-- Пузырьки -->
         <Style x:Key="BubbleLeft" TargetType="Border">
@@ -146,9 +146,9 @@
 
             <!-- Макеты элементов чатов -->
             <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                <ListBox Background="Transparent" BorderThickness="0" ItemTemplate="{StaticResource ChatItemTemplate}" SelectionChanged="ListBox_SelectionChanged" HorizontalAlignment="Center">
+                <ListBox x:Name="UsersList" Background="Transparent" BorderThickness="0" SelectionChanged="ListBox_SelectionChanged" HorizontalAlignment="Center" MouseLeftButtonUp="UsersList_MouseLeftButtonUp">
                     <!-- 12 «болванок» -->
-                    <sys:String>1</sys:String>
+                    
                 </ListBox>
             </ScrollViewer>
         </Grid>
