@@ -14,6 +14,7 @@ public partial class Message
     public int UserId { get; set; }
 
     public string MessageText { get; set; } = null!;
+    public string Status { get; set; } = null!;
 
     public virtual Chat Chat { get; set; } = null!;
 

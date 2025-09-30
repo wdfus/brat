@@ -4,7 +4,7 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Brat"
         Title="Brat" Height="1000" Width="1800" WindowStartupLocation="CenterScreen"
-        Background="#2D2D2D">
+        Background="#2D2D2D" Loaded="Window_Loaded">
     <Window.Resources>
         <!-- Палитра -->
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
@@ -159,7 +159,7 @@
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border-->
         <!-- ОБЛАСТЬ СООБЩЕНИЙ -->
         <Grid Grid.Row="1" Grid.Column="2" Background="White">
-            <ScrollViewer Padding="24,16">
+            <ScrollViewer Padding="24,16" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden">
                 <StackPanel x:Name="chatField" HorizontalAlignment="Center" VerticalAlignment="Center">
                     <TextBlock FontSize="20" Text="Выберите, кому вы хотите написать..."/>
                 </StackPanel>
@@ -167,20 +167,20 @@
         </Grid>
 
         <!-- НИЖНЯЯ ПАНЕЛЬ ВВОДА — только под областью сообщений -->
-        <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource Col.Input}">
-            <Grid Margin="12,0">
+        <Border Grid.Row="2" Grid.Column="2" Background="White" BorderThickness="0">
+            <!--<Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="56"/>
                 </Grid.ColumnDefinitions>
                 <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
-                    <TextBox BorderThickness="0" Background="Transparent" Foreground="White"
+                    <TextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
                              Padding="12,8" FontSize="14" Text="Сообщение..."/>
                 </Border>
                 <Button Grid.Column="1" Content="➤" FontSize="18" FontWeight="Bold"
                         Background="#5A5A5A" Foreground="White" BorderThickness="0"
                         Width="56" Height="40" VerticalAlignment="Center"/>
-            </Grid>
+            </Grid>-->
         </Border>
     </Grid>
 </Window>

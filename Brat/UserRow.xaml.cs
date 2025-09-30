@@ -22,10 +22,10 @@ namespace Brat
     /// </summary>
     public partial class UserRow : UserControl
     {
-        public UserRow(string NameOf, string lastText, int senderId, int chatId)
+        public UserRow(string NameOf, string secondName, int senderId, int chatId, string lastText, string LastStatus)
         {
             InitializeComponent();
-            nameOfUser.Text = NameOf;
+            nameOfUser.Text = NameOf + " " + secondName + " " + LastStatus;
             LastUserText.Text = lastText;
             gridFather.Tag = senderId;
             this.Tag = chatId;

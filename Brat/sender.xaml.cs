@@ -28,9 +28,9 @@ namespace Brat
 
         }
 
-        public Sender(string text) : this()
+        public Sender(string text, string statusText) : this()
         {
-            messageText.Text = text;
+            messageText.Text = text + " " + statusText;
         }
     }
 }

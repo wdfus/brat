@@ -19,13 +19,15 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
-        int Myid = 1;
+        int Myid = 2;
         public class fullStack()
         {
             public string firstName;
             public string secondName;
             public int chatId;
             public int Id;
+            public string LastText;
+            public string LastMessageStatus;
         }
         public MainWindow()
         {
@@ -39,7 +41,7 @@ namespace Brat
                           c => c.UserId2,
                           (u, c) => new { User = u, Chat = c })
                     .Where(uc => context.Chats
-                                 .Where(c => c.UserId1 == 1)
+                                 .Where(c => c.UserId1 == Myid || c.UserId2 == Myid)
                                  .Select(c => c.UserId2)
                                  .Contains(uc.User.Id))
                     .Select(uc =>  new fullStack
@@ -47,13 +49,15 @@ namespace Brat
                     firstName = uc.User.FirstName,
                     secondName = uc.User.SecondName,
                     chatId = uc.Chat.ChatId,
-                    Id = uc.User.Id
+                    Id = uc.User.Id,
+                    LastText = context.Messages.Where( f => f.ChatId == uc.Chat.ChatId).OrderByDescending(d => d.MessageId).Select(d => d.MessageText).FirstOrDefault().ToString(),
+                    LastMessageStatus = context.Messages.Where(f => f.ChatId == uc.Chat.ChatId).OrderByDescending(d => d.MessageId).Select(d => d.Status).FirstOrDefault().ToString(),
                     })
                     .ToList();
 
                 foreach (fullStack user in result)
                 {
-                    var useraaaaaa = new UserRow(user.firstName.ToString(), user.secondName.ToString(), user.Id, user.chatId);
+                    var useraaaaaa = new UserRow(user.firstName.ToString(), user.secondName.ToString(), user.Id, user.chatId, user.LastText, user.LastMessageStatus);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -78,6 +82,7 @@ namespace Brat
         {
             chatField.Children.Clear();
             chatField.HorizontalAlignment = HorizontalAlignment.Left;
+            chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
             using (var context = new BratBaseContext())
             {
                 var jujun = context.Messages.ToList().Where(x => x.ChatId == chatId);
@@ -92,7 +97,7 @@ namespace Brat
                         }
                         else
                         {
-                            var sender = new Sender(chat.MessageText.ToString());
+                            var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString());
                             chatField.Children.Add(sender);
                         }
                     }
@@ -111,5 +116,11 @@ namespace Brat
                 LoadMessages((int)userrow.gridFather.Tag, (int)userrow.Tag);
             }
         }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            chatScroll.ScrollToEnd();
+        }
+
     }
 }
