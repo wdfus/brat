@@ -4,7 +4,9 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Brat"
         Title="Brat" Height="1000" Width="1800" WindowStartupLocation="CenterScreen"
-        Background="#2D2D2D" Loaded="Window_Loaded">
+        FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"        
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        Background="#2D2D2D" Loaded="Window_Loaded" KeyDown="Window_KeyDown">
     <Window.Resources>
         <!-- Палитра -->
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
@@ -78,7 +80,7 @@
     </Window.Resources>
 
     <!-- ===== ГЛАВНАЯ СЕТКА: 3 колонки (рейл / чаты / сообщения) и 3 строки ===== -->
-    <Grid Background="{StaticResource Col.AppBg}">
+    <Grid Background="{StaticResource Col.Input}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="64"/>
             <!-- узкий рейл -->
@@ -158,29 +160,31 @@
             <TextBlock Text="Непрочитанные сообщения" Foreground="White"
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border-->
         <!-- ОБЛАСТЬ СООБЩЕНИЙ -->
-        <Grid Grid.Row="1" Grid.Column="2" Background="White">
+        <Grid Grid.Row="1" Grid.Column="2" Background="{StaticResource Col.Input}">
             <ScrollViewer Padding="24,16" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden">
                 <StackPanel x:Name="chatField" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock FontSize="20" Text="Выберите, кому вы хотите написать..."/>
+                    <TextBlock FontSize="24" Text="Выберите, кому вы хотите написать..." Foreground="White" FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"/>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
 
         <!-- НИЖНЯЯ ПАНЕЛЬ ВВОДА — только под областью сообщений -->
-        <Border Grid.Row="2" Grid.Column="2" Background="White" BorderThickness="0">
-            <!--<Grid Margin="12,0">
+        <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource Col.Side}" BorderThickness="0" x:Name="borderEnterField" Visibility="Hidden">
+            <Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="56"/>
                 </Grid.ColumnDefinitions>
                 <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
-                    <TextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
-                             Padding="12,8" FontSize="14" Text="Сообщение..."/>
+                    <xctk:WatermarkTextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
+                             Padding="12,12" FontSize="14" Watermark="Сообщение...">
+
+                    </xctk:WatermarkTextBox>
                 </Border>
                 <Button Grid.Column="1" Content="➤" FontSize="18" FontWeight="Bold"
                         Background="#5A5A5A" Foreground="White" BorderThickness="0"
                         Width="56" Height="40" VerticalAlignment="Center"/>
-            </Grid>-->
+            </Grid>
         </Border>
     </Grid>
 </Window>

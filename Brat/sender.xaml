@@ -5,6 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Brat"
              mc:Ignorable="d" 
+             FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"
              MaxWidth="385">
     <UserControl.Resources>
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
