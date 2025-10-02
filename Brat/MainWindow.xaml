@@ -177,7 +177,7 @@
                 </Grid.ColumnDefinitions>
                 <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
                     <xctk:WatermarkTextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
-                             Padding="12,12" FontSize="14" Watermark="Сообщение...">
+                             Padding="12,12" FontSize="14" Watermark="Сообщение..." KeyDown="mainTextBox_KeyDown" >
 
                     </xctk:WatermarkTextBox>
                 </Border>

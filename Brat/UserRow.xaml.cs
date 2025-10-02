@@ -22,15 +22,23 @@ namespace Brat
     /// </summary>
     public partial class UserRow : UserControl
     {
-        public UserRow(int ToUserId, string NameOf, string SecondName, int SenderId, int ChatId, string LastText, string LastStatus)
+        public UserRow(int ToUserId, string NameOf, string SecondName, int SenderId, int ChatId, string LastText, string LastStatus, string Status)
         {
             InitializeComponent();
             nameOfUser.Text = NameOf + " " + SecondName + " " + LastStatus;
             LastUserText.Text = LastText;
             gridFather.Tag = SenderId;
             this.Tag = ChatId;
-            TagToUserId.Tag = ChatId;
-            
+            TagToUserId.Tag = ToUserId;
+            if (Status == "read")
+            {
+                HasRead.Fill = new SolidColorBrush(Color.FromRgb(81, 157, 255));
+            }
+            else
+            {
+                HasRead.Fill = new SolidColorBrush(Colors.LightGray);
+            }
+
         }
     }
 }

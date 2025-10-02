@@ -12,13 +12,17 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Ellipse Width="42" Height="42" Fill="#D9D9D9" VerticalAlignment="Center" Margin="5,0,0,0" x:Name="TagToUserId"/>
-        <StackPanel Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center">
-            <StackPanel Height="15" Width="216" HorizontalAlignment="Left">
-                <TextBlock x:Name="nameOfUser" FontSize="14" Foreground="#FFE2E2E2"/>
+        <StackPanel Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+            <StackPanel Width="234">
+                <StackPanel Height="15" Width="216" HorizontalAlignment="Left">
+                    <TextBlock x:Name="nameOfUser" FontSize="14" Foreground="#FFE2E2E2"/>
+                </StackPanel>
+                <StackPanel Height="15" Width="216" Margin="0, 5, 0, 0" HorizontalAlignment="Left">
+                    <TextBlock x:Name="LastUserText" FontSize="14" FontWeight="Normal" Foreground="#FFA4A4A4"/>
+                </StackPanel>
             </StackPanel>
-            <StackPanel Height="15" Width="216" Margin="0, 5, 0, 0" HorizontalAlignment="Left">
-                <TextBlock x:Name="LastUserText" FontSize="14" FontWeight="Normal" Foreground="#FFA4A4A4"/>
-            </StackPanel>
+                <Ellipse x:Name="HasRead" Width="10" Height="10" Fill="#D9D9D9" VerticalAlignment="Bottom" HorizontalAlignment="Right"/>
+            <StackPanel/>
         </StackPanel>
     </Grid>
 </UserControl>

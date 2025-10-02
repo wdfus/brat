@@ -20,7 +20,7 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
-        int Myid = 2;
+        int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int SelectedChatId;
@@ -33,6 +33,7 @@ namespace Brat
             public int ToUserId;
             public string LastText;
             public string LastMessageStatus;
+            public string Status;
         }
         public MainWindow()
         {
@@ -54,7 +55,11 @@ namespace Brat
                     {
                         ChatId = x.Chat.ChatId,
                         FromUserId = x.User.Id,
-                        ToUserId = x.Chat.UserId2,
+                        ToUserId = context.Chats
+                        .Where(c => c.ChatId == x.Chat.ChatId && (c.UserId1 == Myid || c.UserId2 == Myid))
+                        .AsEnumerable() // дальше вычисляется в памяти
+                        .Select(c => c.UserId1 == x.User.Id ? c.UserId2 : c.UserId1)
+                        .FirstOrDefault(),
                         FirstName = x.User.FirstName,
                         SecondName = x.User.SecondName,
 
@@ -68,7 +73,13 @@ namespace Brat
                             .Where(m => m.ChatId == x.Chat.ChatId)
                             .OrderByDescending(m => m.MessageId)
                             .Select(m => m.Status)
-                            .FirstOrDefault()
+                            .FirstOrDefault(),
+
+                        Status = context.Messages
+                            .Where(m => m.ChatId == x.Chat.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .Select(m => m.Status)
+                            .FirstOrDefault().ToString(),
                     })
                     .ToList();
 
@@ -77,7 +88,7 @@ namespace Brat
 
                 foreach (fullStack user in Result)
                 {
-                    var useraaaaaa = new UserRow(user.ToUserId, user.FirstName.ToString(), user.SecondName.ToString(), user.FromUserId, user.ChatId, user.LastText, user.LastMessageStatus);
+                    var useraaaaaa = new UserRow(user.ToUserId, user.FirstName.ToString(), user.SecondName.ToString(), user.FromUserId, user.ChatId, user.LastText, user.LastMessageStatus, user.Status);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -101,6 +112,7 @@ namespace Brat
                 ChatField.Children.Clear();
                 borderEnterField.Visibility = Visibility.Visible;
                 ChatField.HorizontalAlignment = HorizontalAlignment.Left;
+                ChatField.VerticalAlignment = VerticalAlignment.Bottom;
                 chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
                 using (var context = new BratBaseContext())
                 {
@@ -166,6 +178,7 @@ namespace Brat
                 borderEnterField.Visibility = Visibility.Hidden;
                 LoadMessages();
             }
+
         }
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
@@ -174,6 +187,7 @@ namespace Brat
             {
                 try
                 {
+                    //System.Windows.MessageBox.Show($"ChatID: {SelectedChatId}\n\nFromUserId: {SelectedFromUserId}\n\n ToUserId{SelectedToUserId}");
                     var result = context.Messages.Add(new Message
                     {
                         ChatId = SelectedChatId,
@@ -190,6 +204,14 @@ namespace Brat
                 {
                     System.Windows.MessageBox.Show("Что-то слуичлось");
                 }
+            }
+        }
+
+        private void mainTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                LoadMessages(SelectedToUserId, SelectedChatId);
             }
         }
     }
