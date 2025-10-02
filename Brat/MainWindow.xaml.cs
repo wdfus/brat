@@ -20,13 +20,17 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
-        int Myid = 1;
+        int Myid = 2;
+        private int SelectedToUserId;
+        private int SelectedFromUserId;
+        private int SelectedChatId;
         public class fullStack()
         {
-            public string firstName;
-            public string secondName;
-            public int chatId;
-            public int Id;
+            public string FirstName;
+            public string SecondName;
+            public int ChatId;
+            public int FromUserId;
+            public int ToUserId;
             public string LastText;
             public string LastMessageStatus;
         }
@@ -37,7 +41,7 @@ namespace Brat
             {
 
 #pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
-                var result = context.Chats
+                var Result = context.Chats
                     .Where(c => c.UserId1 == Myid || c.UserId2 == Myid)
                     .Select(c => new
                     {
@@ -48,10 +52,11 @@ namespace Brat
                     })
                     .Select(x => new fullStack
                     {
-                        chatId = x.Chat.ChatId,
-                        Id = x.User.Id,
-                        firstName = x.User.FirstName,
-                        secondName = x.User.SecondName,
+                        ChatId = x.Chat.ChatId,
+                        FromUserId = x.User.Id,
+                        ToUserId = x.Chat.UserId2,
+                        FirstName = x.User.FirstName,
+                        SecondName = x.User.SecondName,
 
                         LastText = context.Messages
                             .Where(m => m.ChatId == x.Chat.ChatId)
@@ -70,9 +75,9 @@ namespace Brat
 #pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
 
 
-                foreach (fullStack user in result)
+                foreach (fullStack user in Result)
                 {
-                    var useraaaaaa = new UserRow(user.firstName.ToString(), user.secondName.ToString(), user.Id, user.chatId, user.LastText, user.LastMessageStatus);
+                    var useraaaaaa = new UserRow(user.ToUserId, user.FirstName.ToString(), user.SecondName.ToString(), user.FromUserId, user.ChatId, user.LastText, user.LastMessageStatus);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -93,26 +98,26 @@ namespace Brat
         {
             if (user_id != -1 && chatId != -1)
             {
-                chatField.Children.Clear();
+                ChatField.Children.Clear();
                 borderEnterField.Visibility = Visibility.Visible;
-                chatField.HorizontalAlignment = HorizontalAlignment.Left;
+                ChatField.HorizontalAlignment = HorizontalAlignment.Left;
                 chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
                 using (var context = new BratBaseContext())
                 {
-                    var jujun = context.Messages.ToList().Where(x => x.ChatId == chatId);
+                    var Jujun = context.Messages.ToList().Where(x => x.ChatId == chatId);
                     try
                     {
-                        foreach (Message chat in jujun)
+                        foreach (Message chat in Jujun)
                         {
                             if (user_id == chat.FromUserId)
                             {
                                 var receiver = new Receiver(chat.MessageText.ToString());
-                                chatField.Children.Add(receiver);
+                                ChatField.Children.Add(receiver);
                             }
                             else
                             {
                                 var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString());
-                                chatField.Children.Add(sender);
+                                ChatField.Children.Add(sender);
                             }
                         }
                     }
@@ -122,12 +127,12 @@ namespace Brat
             }
             else
             {
-                chatField.Children.Clear();
-                chatField.HorizontalAlignment = HorizontalAlignment.Center;
-                chatField.VerticalAlignment = VerticalAlignment.Center;
-                chatField.Children.Add(new TextBlock
+                ChatField.Children.Clear();
+                ChatField.HorizontalAlignment = HorizontalAlignment.Center;
+                ChatField.VerticalAlignment = VerticalAlignment.Center;
+                ChatField.Children.Add(new TextBlock
                 {
-                    FontSize = 20,
+                    FontSize = 24,
                     Text= "Выберите, кому вы хотите написать...",
                     Foreground = new SolidColorBrush(Colors.White),
                 });
@@ -140,7 +145,11 @@ namespace Brat
             ListBoxItem a  = ItemsControl.ContainerFromElement(UsersList, e.OriginalSource as DependencyObject) as ListBoxItem;;
             if (a != null && a.Content is UserRow userrow)
             {
-                LoadMessages((int)userrow.gridFather.Tag, (int)userrow.Tag);
+                SelectedToUserId = (int)userrow.gridFather.Tag;
+                SelectedChatId = (int)userrow.Tag;
+                SelectedFromUserId = (int)userrow.TagToUserId.Tag;
+                LoadMessages(SelectedToUserId, SelectedChatId);
+
             }
         }
 
@@ -159,5 +168,29 @@ namespace Brat
             }
         }
 
+        async private void SendMessage_Click(object sender, RoutedEventArgs e)
+        {
+            using (var context = new BratBaseContext())
+            {
+                try
+                {
+                    var result = context.Messages.Add(new Message
+                    {
+                        ChatId = SelectedChatId,
+                        FromUserId = SelectedFromUserId,
+                        UserId = SelectedToUserId,
+                        MessageText = mainTextBox.Text,
+                        Status = "notread"
+                    });
+                    await context.SaveChangesAsync();
+                    mainTextBox.Text = "";
+                    LoadMessages(SelectedToUserId, SelectedChatId);
+                }
+                catch
+                {
+                    System.Windows.MessageBox.Show("Что-то слуичлось");
+                }
+            }
+        }
     }
 }

@@ -11,7 +11,7 @@
             <ColumnDefinition Width="52"/>
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
-        <Ellipse Width="42" Height="42" Fill="#D9D9D9" VerticalAlignment="Center" Margin="5,0,0,0"/>
+        <Ellipse Width="42" Height="42" Fill="#D9D9D9" VerticalAlignment="Center" Margin="5,0,0,0" x:Name="TagToUserId"/>
         <StackPanel Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center">
             <StackPanel Height="15" Width="216" HorizontalAlignment="Left">
                 <TextBlock x:Name="nameOfUser" FontSize="14" Foreground="#FFE2E2E2"/>
