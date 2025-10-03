@@ -12,6 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Xceed.Wpf.Toolkit;
+using Brat;
 
 namespace Brat
 {
@@ -38,6 +39,12 @@ namespace Brat
         public MainWindow()
         {
             InitializeComponent();
+
+            var _wsClient = new WebSocketClient();
+            _wsClient.MessageReceived += OnMessageReceived;
+            _wsClient.StatusChanged += OnStatusChanged;
+
+            _ = _wsClient.ConnectAsync("ws://localhost:6789");
             using (var context = new BratBaseContext())
             {
 
@@ -92,6 +99,8 @@ namespace Brat
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
+
+
 
         }
 
@@ -213,6 +222,24 @@ namespace Brat
             {
                 LoadMessages(SelectedToUserId, SelectedChatId);
             }
+        }
+
+        private void OnMessageReceived(string message)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                //MessagesTextBox.AppendText(message + Environment.NewLine);
+                //MessagesTextBox.ScrollToEnd();
+                Debug.WriteLine(message);
+            });
+        }
+
+        private void OnStatusChanged(string status)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Debug.WriteLine(status);
+            });
         }
     }
 }
