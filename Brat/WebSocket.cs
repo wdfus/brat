@@ -12,7 +12,7 @@ namespace Brat
 {
     public class WebSocketClient : IDisposable
     {
-        private ClientWebSocket _client;
+        public ClientWebSocket _client;
         private CancellationTokenSource _cts;
 
         public event Action<string>? MessageReceived;
@@ -88,6 +88,26 @@ namespace Brat
         {
             _cts.Cancel();
             _client.Dispose();
+        }
+
+
+        public async Task CloseWebSocketAsync(ClientWebSocket wsClient)
+        {
+            if (wsClient.State == WebSocketState.Open)
+            {
+                // Отправляем Close Frame серверу
+                await wsClient.CloseAsync(
+                    WebSocketCloseStatus.NormalClosure, // статус закрытия
+                    "Клиент завершил соединение",       // описание
+                    CancellationToken.None
+                );
+
+                Console.WriteLine("WebSocket корректно закрыт");
+            }
+            else
+            {
+                Console.WriteLine("WebSocket уже закрыт или не подключён");
+            }
         }
     }
 }

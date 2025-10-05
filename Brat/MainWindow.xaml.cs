@@ -1,6 +1,9 @@
-﻿using Brat.Models;
+﻿using Brat;
+using Brat.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Net;
+using System.Net.WebSockets;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,7 +15,6 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Xceed.Wpf.Toolkit;
-using Brat;
 
 namespace Brat
 {
@@ -21,10 +23,11 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
-        public static int Myid = 2;
+        public static int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int SelectedChatId;
+        private WebSocketClient _wsClient;
         public class fullStack()
         {
             public string FirstName;
@@ -40,7 +43,7 @@ namespace Brat
         {
             InitializeComponent();
 
-            var _wsClient = new WebSocketClient();
+            _wsClient = new WebSocketClient();
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
@@ -240,6 +243,11 @@ namespace Brat
             {
                 Debug.WriteLine(status);
             });
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            _wsClient.CloseWebSocketAsync(_wsClient._client);
         }
     }
 }
