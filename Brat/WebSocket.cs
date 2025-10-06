@@ -64,8 +64,9 @@ namespace Brat
                     }
                     else
                     {
-                        string message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        MessageReceived?.Invoke(message);
+                        string Message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        string ToUserId = Encoding.UTF8.GetString(buffer, 1, result.Count);
+                        MessageReceived?.Invoke(Message);
                     }
                 }
                 catch (Exception ex)

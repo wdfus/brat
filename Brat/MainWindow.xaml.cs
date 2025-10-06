@@ -23,7 +23,7 @@ namespace Brat
     /// </summary>
     public partial class MainWindow : Window
     {
-        public static int Myid = 1;
+        public static int Myid = 2;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int SelectedChatId;
@@ -47,7 +47,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
-            _ = _wsClient.ConnectAsync("ws://172.20.10.2:6789");
+            _ = _wsClient.ConnectAsync("ws://192.168.1.104:6789");
             using (var context = new BratBaseContext())
             {
 
@@ -233,6 +233,7 @@ namespace Brat
             {
                 var receiver = new Receiver(message);
                 ChatField.Children.Add(receiver);
+                Debug.WriteLine($"{message}");
 
             });
         }
