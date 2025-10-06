@@ -47,7 +47,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
-            _ = _wsClient.ConnectAsync("ws://192.168.1.104:6789");
+            _ = _wsClient.ConnectAsync("ws://172.20.10.2:6789");
             using (var context = new BratBaseContext())
             {
 
@@ -231,9 +231,9 @@ namespace Brat
         {
             Dispatcher.Invoke(() =>
             {
-                //MessagesTextBox.AppendText(message + Environment.NewLine);
-                //MessagesTextBox.ScrollToEnd();
-                Debug.WriteLine(message);
+                var receiver = new Receiver(message);
+                ChatField.Children.Add(receiver);
+
             });
         }
 
