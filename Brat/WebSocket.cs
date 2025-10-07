@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 
 
 
@@ -56,18 +57,31 @@ namespace Brat
             {
                 try
                 {
-                    var result = await _client.ReceiveAsync(buffer, _cts.Token);
+                    var messageBuffer = new List<byte>();
+
+                    WebSocketReceiveResult result;
+                    do
+                    {
+                        result = await _client.ReceiveAsync(new ArraySegment<byte>(buffer), _cts.Token);
+                        messageBuffer.AddRange(buffer.Take(result.Count));
+
+
+                    } while (!result.EndOfMessage);
+
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
                         await _client.CloseAsync(WebSocketCloseStatus.NormalClosure, "Закрыто сервером", _cts.Token);
                         StatusChanged?.Invoke("Соединение закрыто сервером");
+                        break;
                     }
-                    else
-                    {
-                        string Message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        string ToUserId = Encoding.UTF8.GetString(buffer, 1, result.Count);
-                        MessageReceived?.Invoke(Message);
-                    }
+
+                    string message = Encoding.UTF8.GetString(messageBuffer.ToArray());
+                    using var doc = JsonDocument.Parse(message);
+                    int fromUserId = doc.RootElement.GetProperty("from_user_id").GetInt32();
+                    string text = doc.RootElement.GetProperty("message_text").GetString();
+                    Debug.WriteLine($"Получено сообщение: {text}");
+                    Debug.WriteLine($"Получен ID: {fromUserId}");
+                    MessageReceived?.Invoke(message);
                 }
                 catch (Exception ex)
                 {
@@ -76,6 +90,7 @@ namespace Brat
                 }
             }
         }
+
 
         public async Task SendMessageAsync(string message)
         {
