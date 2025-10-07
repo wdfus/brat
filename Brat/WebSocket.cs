@@ -76,12 +76,16 @@ namespace Brat
                     }
 
                     string message = Encoding.UTF8.GetString(messageBuffer.ToArray());
-                    using var doc = JsonDocument.Parse(message);
-                    int fromUserId = doc.RootElement.GetProperty("from_user_id").GetInt32();
-                    string text = doc.RootElement.GetProperty("message_text").GetString();
-                    Debug.WriteLine($"Получено сообщение: {text}");
-                    Debug.WriteLine($"Получен ID: {fromUserId}");
-                    MessageReceived?.Invoke(message);
+                    Debug.WriteLine(message);
+                    if (message.TrimStart().StartsWith("{"))
+                    {
+                        MessageReceived?.Invoke(message);
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Неподдерживаемое сообщение: {message}");
+                    }
+
                 }
                 catch (Exception ex)
                 {

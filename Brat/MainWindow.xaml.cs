@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -211,12 +212,12 @@ namespace Brat
                     await context.SaveChangesAsync();
                     mainTextBox.Text = "";
                     LoadMessages(SelectedToUserId, SelectedChatId);
-                }
+            }
                 catch
                 {
-                    System.Windows.MessageBox.Show("Что-то слуичлось");
-                }
+                System.Windows.MessageBox.Show("Что-то слуичлось");
             }
+        }
         }
 
         private void mainTextBox_KeyDown(object sender, KeyEventArgs e)
@@ -231,8 +232,15 @@ namespace Brat
         {
             Dispatcher.Invoke(() =>
             {
-                var receiver = new Receiver(message);
-                ChatField.Children.Add(receiver);
+                using var doc = JsonDocument.Parse(message);
+                int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
+                string text = doc.RootElement.GetProperty("message_text").GetString();
+                Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
+                if (SelectedToUserId == fromUserId)
+                {
+                    var receiver = new Receiver(text);
+                    ChatField.Children.Add(receiver);
+                }
 
             });
         }
