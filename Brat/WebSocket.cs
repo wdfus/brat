@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Net;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -128,6 +129,21 @@ namespace Brat
             {
                 Console.WriteLine("WebSocket уже закрыт или не подключён");
             }
+        }
+
+        public static string GetLocalIPv4()
+        {
+            string ipAddress = string.Empty;
+            IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in ipHost.AddressList)
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    ipAddress = ip.ToString();
+                    break;
+                }
+            }
+            return ipAddress;
         }
     }
 }

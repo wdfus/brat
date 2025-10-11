@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
@@ -16,15 +17,38 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Xceed.Wpf.Toolkit;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Brat
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
+    /// 
     public partial class MainWindow : Window
     {
-        public static int Myid = 2;
+        public static class VisualHelper
+        {
+            public static T FindChildByTag<T>(DependencyObject parent, object tag) where T : FrameworkElement
+            {
+                if (parent == null) return null;
+
+                int count = VisualTreeHelper.GetChildrenCount(parent);
+                for (int i = 0; i < count; i++)
+                {
+                    var child = VisualTreeHelper.GetChild(parent, i);
+                    if (child is T fe && fe.Tag != null && fe.Tag.Equals(tag))
+                        return fe;
+
+                    var result = FindChildByTag<T>(child, tag);
+                    if (result != null)
+                        return result;
+                }
+
+                return null;
+            }
+        }
+        public static int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int SelectedChatId;
@@ -40,6 +64,25 @@ namespace Brat
             public string LastMessageStatus;
             public string Status;
         }
+
+        public void UpdateLastText(string text, int fromUserId)
+        {
+            foreach (var item in UsersList.Items)
+            {
+                if (item is UserRow userItem)
+                {
+                    var border = VisualHelper.FindChildByTag<Grid>(userItem, fromUserId);
+                    if (border != null)
+                    {
+                        Debug.WriteLine($"Найден элемент с тегом {border.Tag}");
+                        // можно выделить, подсветить, прокрутить
+                        UsersList.ScrollIntoView(userItem);
+                        userItem.UpdateMessageText(text);
+                        break;
+                    }
+                }
+            }
+        }
         public MainWindow()
         {
             InitializeComponent();
@@ -48,7 +91,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
-            _ = _wsClient.ConnectAsync("ws://172.20.10.2:6789");
+            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
             using (var context = new BratBaseContext())
             {
 
@@ -106,10 +149,6 @@ namespace Brat
 
 
 
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
 
         }
 
@@ -145,6 +184,14 @@ namespace Brat
                                 ChatField.Children.Add(sender);
                             }
                         }
+                        var HeaderName = context.Users.Where(x => x.Id == SelectedToUserId).FirstOrDefault();
+                        TopRow.Visibility = Visibility.Visible;
+                        var path = ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) as System.Windows.Controls.TextBlock;
+                        if (path != null)
+                        {
+                            path.Text = $"{HeaderName.FirstName} {HeaderName.SecondName}";
+                        }
+                        chatScroll.ScrollToEnd();
                     }
                     catch { }
 
@@ -161,6 +208,12 @@ namespace Brat
                     Text= "Выберите, кому вы хотите написать...",
                     Foreground = new SolidColorBrush(Colors.White),
                 });
+                var path = ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) as System.Windows.Controls.TextBlock;
+                if (path != null)
+                {
+                    path.Text = $"";
+                }
+                TopRow.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -174,6 +227,7 @@ namespace Brat
                 SelectedChatId = (int)userrow.Tag;
                 SelectedFromUserId = (int)userrow.TagToUserId.Tag;
                 LoadMessages(SelectedToUserId, SelectedChatId);
+                userrow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF37587E"));
 
             }
         }
@@ -189,6 +243,9 @@ namespace Brat
             if (e.Key == Key.Escape)
             {
                 borderEnterField.Visibility = Visibility.Hidden;
+                SelectedChatId = -1;
+                SelectedFromUserId = -1;
+                SelectedToUserId= -1;
                 LoadMessages();
             }
 
@@ -196,28 +253,47 @@ namespace Brat
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
-            using (var context = new BratBaseContext())
+            List<char> ForbiddenChars = new List<char>
             {
-                try
+                '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
+                '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
+                '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
+                '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
+                '\u007F', ' ',       // DEL
+                '\u200B','\u200C','\u200D','\uFEFF' // zero-width
+            };
+            if (mainTextBox.Text.Any(c => ForbiddenChars.Contains(c)) || String.IsNullOrEmpty(mainTextBox.Text))
+            {
+                mainTextBox.Text = null;
+                return;
+            }
+                
+            else
+            {
+                using (var context = new BratBaseContext())
                 {
-                    //System.Windows.MessageBox.Show($"ChatID: {SelectedChatId}\n\nFromUserId: {SelectedFromUserId}\n\n ToUserId{SelectedToUserId}");
-                    var result = context.Messages.Add(new Message
+                    try
                     {
-                        ChatId = SelectedChatId,
-                        FromUserId = SelectedFromUserId,
-                        UserId = SelectedToUserId,
-                        MessageText = mainTextBox.Text,
-                        Status = "notread"
-                    });
-                    await context.SaveChangesAsync();
-                    mainTextBox.Text = "";
-                    LoadMessages(SelectedToUserId, SelectedChatId);
+                        //System.Windows.MessageBox.Show($"ChatID: {SelectedChatId}\n\nFromUserId: {SelectedFromUserId}\n\n ToUserId{SelectedToUserId}");
+                        var result = context.Messages.Add(new Message
+                        {
+                            ChatId = SelectedChatId,
+                            FromUserId = SelectedFromUserId,
+                            UserId = SelectedToUserId,
+                            MessageText = mainTextBox.Text,
+                            Status = "notread"
+                        });
+                        await context.SaveChangesAsync();
+                        LoadMessages(SelectedToUserId, SelectedChatId);
+                        UpdateLastText(mainTextBox.Text, SelectedToUserId);
+                        mainTextBox.Text = "";
+                    }
+                    catch
+                    {
+                        System.Windows.MessageBox.Show("Что-то случилось");
+                    }
+                }
             }
-                catch
-                {
-                System.Windows.MessageBox.Show("Что-то слуичлось");
-            }
-        }
         }
 
         private void mainTextBox_KeyDown(object sender, KeyEventArgs e)
@@ -236,6 +312,7 @@ namespace Brat
                 int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
                 string text = doc.RootElement.GetProperty("message_text").GetString();
                 Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
+                UpdateLastText(text, fromUserId);
                 if (SelectedToUserId == fromUserId)
                 {
                     var receiver = new Receiver(text);
@@ -256,6 +333,30 @@ namespace Brat
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             _wsClient.CloseWebSocketAsync(_wsClient._client);
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void TextBlock_Click(object sender, RoutedEventArgs e)
+        {
+            Window1 popup = new Window1();
+            popup.Owner = this;
+            popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+            popup.Show();
+
+            this.LocationChanged += (s, e) =>
+            {
+                popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                popup.Top = this.Top + (this.Height - popup.Height) / 2;
+            };
+
+            this.SizeChanged += (s, e) =>
+            {
+                popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                popup.Top = this.Top + (this.Height - popup.Height) / 2;
+            };
         }
     }
 }

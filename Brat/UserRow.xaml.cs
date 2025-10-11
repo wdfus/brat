@@ -40,5 +40,11 @@ namespace Brat
             }
 
         }
+
+        public void UpdateMessageText(string message)
+        {
+            LastUserText.Text = message;
+            return;
+        }
     }
 }

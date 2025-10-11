@@ -18,6 +18,7 @@
     <None Remove="Fonts\SF-Pro-Rounded-Semibold.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Thin.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Ultralight.otf" />
+    <None Remove="Fonts\x.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +32,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Fonts\MenuIcon.apng">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Fonts\SF-Pro-Rounded-Black.otf">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -58,10 +62,15 @@
     <Resource Include="Fonts\SF-Pro-Rounded-Ultralight.otf">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Fonts\x.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
   </ItemGroup>
+
+
 
 </Project>
