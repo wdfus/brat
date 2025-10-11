@@ -9,10 +9,12 @@ using System.Text;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
@@ -27,6 +29,8 @@ namespace Brat
     /// 
     public partial class MainWindow : Window
     {
+        private PopupProfile popup;
+        private UserRow SelectedUserRow;
         public static class VisualHelper
         {
             public static T FindChildByTag<T>(DependencyObject parent, object tag) where T : FrameworkElement
@@ -53,7 +57,7 @@ namespace Brat
         private int SelectedFromUserId;
         private int SelectedChatId;
         private WebSocketClient _wsClient;
-        public class fullStack()
+        public class UserClass()
         {
             public string FirstName;
             public string SecondName;
@@ -63,6 +67,9 @@ namespace Brat
             public string LastText;
             public string LastMessageStatus;
             public string Status;
+            public string AboutSelf;
+            public string Birthday;
+            public string PhoneNumber;
         }
 
         public void UpdateLastText(string text, int fromUserId)
@@ -96,16 +103,17 @@ namespace Brat
             {
 
 #pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
+#pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
                 var Result = context.Chats
                     .Where(c => c.UserId1 == Myid || c.UserId2 == Myid)
                     .Select(c => new
                     {
                         Chat = c,
                         User = c.UserId1 == Myid
-                            ? c.UserId2Navigation  
+                            ? c.UserId2Navigation
                             : c.UserId1Navigation
                     })
-                    .Select(x => new fullStack
+                    .Select(x => new UserClass
                     {
                         ChatId = x.Chat.ChatId,
                         FromUserId = x.User.Id,
@@ -134,15 +142,19 @@ namespace Brat
                             .OrderByDescending(m => m.MessageId)
                             .Select(m => m.Status)
                             .FirstOrDefault().ToString(),
+                        AboutSelf = x.User.AboutSelf,
+                        Birthday = x.User.Birthday.ToString(),
+                        PhoneNumber = x.User.PhoneNumber.ToString()
                     })
                     .ToList();
+#pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
 
 #pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
 
 
-                foreach (fullStack user in Result)
+                foreach (UserClass user in Result)
                 {
-                    var useraaaaaa = new UserRow(user.ToUserId, user.FirstName.ToString(), user.SecondName.ToString(), user.FromUserId, user.ChatId, user.LastText, user.LastMessageStatus, user.Status);
+                    var useraaaaaa = new UserRow(user);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -205,7 +217,7 @@ namespace Brat
                 ChatField.Children.Add(new TextBlock
                 {
                     FontSize = 24,
-                    Text= "Выберите, кому вы хотите написать...",
+                    Text = "Выберите, кому вы хотите написать...",
                     Foreground = new SolidColorBrush(Colors.White),
                 });
                 var path = ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) as System.Windows.Controls.TextBlock;
@@ -220,9 +232,10 @@ namespace Brat
 
         private void UsersList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            ListBoxItem a  = ItemsControl.ContainerFromElement(UsersList, e.OriginalSource as DependencyObject) as ListBoxItem;;
+            ListBoxItem a = ItemsControl.ContainerFromElement(UsersList, e.OriginalSource as DependencyObject) as ListBoxItem;
             if (a != null && a.Content is UserRow userrow)
             {
+                SelectedUserRow = userrow;
                 SelectedToUserId = (int)userrow.gridFather.Tag;
                 SelectedChatId = (int)userrow.Tag;
                 SelectedFromUserId = (int)userrow.TagToUserId.Tag;
@@ -245,10 +258,13 @@ namespace Brat
                 borderEnterField.Visibility = Visibility.Hidden;
                 SelectedChatId = -1;
                 SelectedFromUserId = -1;
-                SelectedToUserId= -1;
+                SelectedToUserId = -1;
                 LoadMessages();
+                if (SelectedUserRow != null && UsersList.Items.Contains(SelectedUserRow))
+                {
+                    SelectedUserRow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FFFFFF"));
+                }
             }
-
         }
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
@@ -267,7 +283,7 @@ namespace Brat
                 mainTextBox.Text = null;
                 return;
             }
-                
+
             else
             {
                 using (var context = new BratBaseContext())
@@ -341,22 +357,75 @@ namespace Brat
 
         private void TextBlock_Click(object sender, RoutedEventArgs e)
         {
-            Window1 popup = new Window1();
-            popup.Owner = this;
-            popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
-            popup.Show();
-
-            this.LocationChanged += (s, e) =>
+            if (SelectedUserRow != null && SelectedUserRow is UserRow userrow)
             {
-                popup.Left = this.Left + (this.Width - popup.Width) / 2;
-                popup.Top = this.Top + (this.Height - popup.Height) / 2;
-            };
+                popup = new PopupProfile(userrow.ThisUser);
+                popup.Owner = this;
+                popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+                DimLayer.Visibility = Visibility.Visible;
+                var fadeIn = new DoubleAnimation(0, 0.3, TimeSpan.FromMilliseconds(200));
+                DimLayer.BeginAnimation(OpacityProperty, fadeIn);
+                popup.Opacity = 0;
+                popup.Loaded += (s, args) =>
+                {
+                    var popupFade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                    popup.BeginAnimation(Window.OpacityProperty, popupFade);
+                };
 
-            this.SizeChanged += (s, e) =>
-            {
-                popup.Left = this.Left + (this.Width - popup.Width) / 2;
-                popup.Top = this.Top + (this.Height - popup.Height) / 2;
-            };
+                popup.Closed += (s, args) =>
+                {
+                    var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
+                    FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
+                    DimLayer.BeginAnimation(OpacityProperty, FadeOut);
+                    popup = null;
+                };
+
+                popup.Show();
+
+                if (popup != null)
+                {
+                    this.LocationChanged += (s, e) =>
+                    {
+                        if (popup != null)
+                        {
+                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                        }
+                    };
+
+                    this.SizeChanged += (s, e) =>
+                    {
+                        if (popup != null)
+                        {
+                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                        }
+                    };
+                }
+            }
+
+
+
+
         }
+
+        private void DimLayer_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (popup != null)
+            {
+                var FadeOut = new DoubleAnimation(popup.Opacity, 0, TimeSpan.FromMilliseconds(200));
+                FadeOut.Completed += (s2, e2) => popup.Close();
+                popup.BeginAnimation(Window.OpacityProperty, FadeOut);
+            }
+        }
+
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Tab)
+            {
+                e.Handled = true; // блокируем стандартное поведение
+            }
+        }
+
     }
 }

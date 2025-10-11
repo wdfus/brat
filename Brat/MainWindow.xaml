@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:Brat"
+        PreviewKeyDown="Window_PreviewKeyDown"
         Title="Brat" Height="700" Width="1100" MinHeight="600" MinWidth="900" WindowStartupLocation="CenterScreen"
         FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"        
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
@@ -80,121 +81,33 @@
     </Window.Resources>
 
     <!-- ===== ГЛАВНАЯ СЕТКА: 3 колонки (рейл / чаты / сообщения) и 3 строки ===== -->
-    <Grid Background="{StaticResource Col.Input}">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="64"/>
-            <!-- узкий рейл -->
-            <ColumnDefinition Width="300"/>
-            <!-- список чатов -->
-            <ColumnDefinition Width="*"/>
-            <!-- область переписки -->
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="57"/>
-            <!-- верхняя плашка -->
-            <RowDefinition/>
-            <!-- контент -->
-            <RowDefinition Height="60"/>
-            <!-- нижняя плашка ввода (только для переписки) -->
-        </Grid.RowDefinitions>
-
-        <!-- ВЕРХНЯЯ ПАНЕЛЬ — на всю ширину -->
-        <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource Col.Side}" Visibility="Visible" x:Name="TopRow">
-            <Grid Margin="16,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Button Padding="0" Click="TextBlock_Click" HorizontalAlignment="Left" Width="150" x:Name="ButtonHeader">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Background" Value="Transparent"/>
-                            <Setter Property="BorderBrush" Value="Transparent"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <TextBlock x:Name="HeaderChatText" Text="Заголовок чата" Foreground="White" VerticalAlignment="Center" FontWeight="Bold" FontSize="14"/>
-                                        <ControlTemplate.Triggers>
-                                            <!-- Убираем подсветку при наведении -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                                <Setter Property="Cursor" Value="Hand"/>
-                                            </Trigger>
-                                            <!-- Убираем подсветку при нажатии -->
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                                <Setter Property="BorderBrush" Value="Transparent"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Style="{StaticResource IconButton}" Content="…"/>
-                    <Button Style="{StaticResource IconButton}" Content="≡"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- ЛЕВЫЙ РЕЙЛ -->
-        <Grid Grid.RowSpan="3" Grid.Column="0" Background="{StaticResource Col.Rail}" x:Name="LeftRail">
+    <Grid>
+        <Grid Background="{StaticResource Col.Input}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="64"/>
+                <!-- узкий рейл -->
+                <ColumnDefinition Width="300"/>
+                <!-- список чатов -->
+                <ColumnDefinition Width="*"/>
+                <!-- область переписки -->
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" MinHeight="57"/>
+                <RowDefinition Height="57"/>
+                <!-- верхняя плашка -->
                 <RowDefinition/>
-                <RowDefinition Height="Auto"/>
+                <!-- контент -->
+                <RowDefinition Height="60"/>
+                <!-- нижняя плашка ввода (только для переписки) -->
             </Grid.RowDefinitions>
-            <Button         Background="Transparent"
-                            BorderBrush="Transparent"
-                            FocusVisualStyle="{x:Null}" Click="Button_Click">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Grid>
-                                        <!-- Контент кнопки -->
-                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                    </Grid>
-                                    <ControlTemplate.Triggers>
-                                        <!-- Убираем подсветку при наведении -->
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="Transparent"/>
-                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                        </Trigger>
-                                        <!-- Убираем подсветку при нажатии -->
-                                        <Trigger Property="IsPressed" Value="True">
-                                            <Setter Property="Background" Value="Transparent"/>
-                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Button.Style>
-                <Grid Background="#FF5A5A5A">
-                <Grid.Style>
-                    <Style TargetType="Grid">
-                        <Setter Property="Cursor" Value="Arrow"/>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Cursor" Value="Hand"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Grid.Style>
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Width="30" Height="30"
-                            Background="Transparent"
-                            BorderBrush="Transparent"
-                            FocusVisualStyle="{x:Null}"
-                            Padding="0" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Button_Click">
+
+            <!-- ВЕРХНЯЯ ПАНЕЛЬ — на всю ширину -->
+            <Border Grid.Row="0" Grid.Column="2" Background="{DynamicResource Col.Side}" Visibility="Hidden" x:Name="TopRow">
+                <Grid Margin="16,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Padding="0" Click="TextBlock_Click" HorizontalAlignment="Left" Width="150" x:Name="ButtonHeader">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="Transparent"/>
@@ -202,15 +115,13 @@
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="Button">
-                                            <Grid>
-                                                <!-- Контент кнопки -->
-                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </Grid>
+                                            <TextBlock x:Name="HeaderChatText" Text="Заголовок чата" Foreground="White" VerticalAlignment="Center" FontWeight="Bold" FontSize="14"/>
                                             <ControlTemplate.Triggers>
                                                 <!-- Убираем подсветку при наведении -->
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter Property="Background" Value="Transparent"/>
                                                     <Setter Property="BorderBrush" Value="Transparent"/>
+                                                    <Setter Property="Cursor" Value="Hand"/>
                                                 </Trigger>
                                                 <!-- Убираем подсветку при нажатии -->
                                                 <Trigger Property="IsPressed" Value="True">
@@ -223,90 +134,183 @@
                                 </Setter>
                             </Style>
                         </Button.Style>
-                        <!-- Иконка гамбургера -->
-                        <Viewbox>
-                            <Canvas Width="24" Height="24">
-                                <Path
+                    </Button>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Style="{StaticResource IconButton}" Content="…"/>
+                        <Button Style="{StaticResource IconButton}" Content="≡"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ЛЕВЫЙ РЕЙЛ -->
+            <Grid Grid.RowSpan="3" Grid.Column="0" Background="{StaticResource Col.Rail}" x:Name="LeftRail">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" MinHeight="57"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Button         Background="Transparent"
+                            BorderBrush="Transparent"
+                            FocusVisualStyle="{x:Null}" Click="Button_Click">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="BorderBrush" Value="Transparent"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Grid>
+                                            <!-- Контент кнопки -->
+                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <!-- Убираем подсветку при наведении -->
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                            </Trigger>
+                                            <!-- Убираем подсветку при нажатии -->
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </Button.Style>
+                    <Grid Background="#FF5A5A5A">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Cursor" Value="Arrow"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Button Width="30" Height="30"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            FocusVisualStyle="{x:Null}"
+                            Padding="0" HorizontalAlignment="Center" VerticalAlignment="Center" Click="Button_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Grid>
+                                                        <!-- Контент кнопки -->
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                    <ControlTemplate.Triggers>
+                                                        <!-- Убираем подсветку при наведении -->
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        </Trigger>
+                                                        <!-- Убираем подсветку при нажатии -->
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                                <!-- Иконка гамбургера -->
+                                <Viewbox>
+                                    <Canvas Width="24" Height="24">
+                                        <Path
                                 Data="M3 6 H21 M3 12 H21 M3 18 H21"
                                 Stroke="{DynamicResource Col.Side}"
                                 StrokeThickness="1.5"
                                 StrokeStartLineCap="Round"
                                 StrokeEndLineCap="Round"/>
-                            </Canvas>
-                        </Viewbox>
-                    </Button>
-                </StackPanel>
+                                    </Canvas>
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+                <Button Grid.Row="2" Style="{StaticResource IconButton}" Content="★" Margin="14,12,14,12" Background="#4F4F4F"/>
             </Grid>
-            </Button>
-            <Button Grid.Row="2" Style="{StaticResource IconButton}" Content="★" Margin="14,12,14,12" Background="#4F4F4F"/>
-        </Grid>
-            
 
-        <!-- КОЛОНКА СО СПИСКОМ ЧАТОВ -->
-        <Grid Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource Col.Side}">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition/>
-            </Grid.RowDefinitions>
 
-            <!-- Поиск -->
-            <Border Margin="12, 0" Background="#5A5A5A" CornerRadius="20" Height="36" VerticalAlignment="Center">
-                <Grid Margin="12,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <xctk:WatermarkTextBox Grid.ColumnSpan="1" x:Name="SearchTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
+            <!-- КОЛОНКА СО СПИСКОМ ЧАТОВ -->
+            <Grid Grid.RowSpan="3" Grid.Column="1" Background="{StaticResource Col.Side}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <!-- Поиск -->
+                <Border Margin="12, 0" Background="#5A5A5A" CornerRadius="20" Height="36" VerticalAlignment="Center">
+                    <Grid Margin="12,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <xctk:WatermarkTextBox Grid.ColumnSpan="1" x:Name="SearchTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
                              Padding="10" FontSize="14" Watermark="Поиск" KeyDown="mainTextBox_KeyDown">
-                        <xctk:WatermarkTextBox.WatermarkTemplate>
-                            <DataTemplate>
-                                <TextBlock
+                            <xctk:WatermarkTextBox.WatermarkTemplate>
+                                <DataTemplate>
+                                    <TextBlock
                                 Text="{Binding}"
                                 Foreground="#FFD9D9D9"
                                 Opacity="0.6" />
-                            </DataTemplate>
-                        </xctk:WatermarkTextBox.WatermarkTemplate>
-                    </xctk:WatermarkTextBox>
-                </Grid>
-            </Border>
+                                </DataTemplate>
+                            </xctk:WatermarkTextBox.WatermarkTemplate>
+                        </xctk:WatermarkTextBox>
+                    </Grid>
+                </Border>
 
-            <!-- Макеты элементов чатов -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
-                <ListBox x:Name="UsersList" Background="Transparent" BorderThickness="0" SelectionChanged="ListBox_SelectionChanged" HorizontalAlignment="Center" MouseLeftButtonUp="UsersList_MouseLeftButtonUp">
-                    <!-- 12 «болванок» -->
-                </ListBox>
-            </ScrollViewer>
-        </Grid>
+                <!-- Макеты элементов чатов -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Hidden">
+                    <ListBox x:Name="UsersList" Background="Transparent" BorderThickness="0" SelectionChanged="ListBox_SelectionChanged" HorizontalAlignment="Center" MouseLeftButtonUp="UsersList_MouseLeftButtonUp">
+                        <!-- 12 «болванок» -->
+                    </ListBox>
+                </ScrollViewer>
+            </Grid>
 
-        <!-- Разделитель «Непрочитанные сообщения» -->
-        <!-- Border Background="#666666" Height="15" Margin="0,12">
+            <!-- Разделитель «Непрочитанные сообщения» -->
+            <!-- Border Background="#666666" Height="15" Margin="0,12">
             <TextBlock Text="Непрочитанные сообщения" Foreground="White"
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border-->
-        <!-- ОБЛАСТЬ СООБЩЕНИЙ -->
-        <Grid Grid.Row="1" Grid.Column="2" Background="{StaticResource Col.Input}">
-            <ScrollViewer Padding="24,16" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden">
-                <StackPanel x:Name="ChatField" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <TextBlock FontSize="20" Text="Выберите, кому вы хотите написать..." Foreground="White" FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"/>
-                </StackPanel>
-            </ScrollViewer>
-        </Grid>
+            <!-- ОБЛАСТЬ СООБЩЕНИЙ -->
+            <Grid Grid.Row="1" Grid.Column="2" Background="{StaticResource Col.Input}">
+                <ScrollViewer Padding="24,16" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden">
+                    <StackPanel x:Name="ChatField" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock FontSize="20" Text="Выберите, кому вы хотите написать..." Foreground="White" FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
 
-        <!-- НИЖНЯЯ ПАНЕЛЬ ВВОДА — только под областью сообщений -->
-        <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource Col.Side}" BorderThickness="0" x:Name="borderEnterField" Visibility="Hidden" Margin="0,1,0,0">
-            <Grid Margin="12,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="56"/>
-                </Grid.ColumnDefinitions>
-                <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
-                    <xctk:WatermarkTextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
+            <!-- НИЖНЯЯ ПАНЕЛЬ ВВОДА — только под областью сообщений -->
+            <Border Grid.Row="2" Grid.Column="2" Background="{StaticResource Col.Side}" BorderThickness="0" x:Name="borderEnterField" Visibility="Hidden" Margin="0,1,0,0">
+                <Grid Margin="12,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="56"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Background="#5A5A5A" CornerRadius="8" Height="40" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <xctk:WatermarkTextBox x:Name="mainTextBox" BorderThickness="0" Background="Transparent" Foreground="White"
                              Padding="12,12" FontSize="14" Watermark="Сообщение..." KeyDown="mainTextBox_KeyDown" >
 
-                    </xctk:WatermarkTextBox>
-                </Border>
-                <Button x:Name="SendMessage" Grid.Column="1" Content="➤" FontSize="18" FontWeight="Bold"
+                        </xctk:WatermarkTextBox>
+                    </Border>
+                    <Button x:Name="SendMessage" Grid.Column="1" Content="➤" FontSize="18" FontWeight="Bold"
                         Background="#5A5A5A" Foreground="White" BorderThickness="0"
                         Width="56" Height="40" VerticalAlignment="Center" Click="SendMessage_Click"/>
-            </Grid>
-        </Border>
+                </Grid>
+            </Border>
+        </Grid>
+        <Rectangle Fill="#33000000" x:Name="DimLayer" Visibility="Hidden" MouseDown="DimLayer_MouseDown"/>
     </Grid>
 </Window>

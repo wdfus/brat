@@ -18,6 +18,7 @@ public partial class User
     public string? Email { get; set; }
 
     public DateOnly? Birthday { get; set; }
+    public string? AboutSelf { get; set; }
 
     public virtual ICollection<Chat> ChatUserId1Navigations { get; set; } = new List<Chat>();
 
