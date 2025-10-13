@@ -272,12 +272,13 @@ namespace Brat
                 '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
                 '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
                 '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
-                '\u007F', ' ',       // DEL
+                '\u007F',       // DEL
                 '\u200B','\u200C','\u200D','\uFEFF' // zero-width
             };
-            if (mainTextBox.Text.Any(c => ForbiddenChars.Contains(c)) || String.IsNullOrEmpty(mainTextBox.Text))
+            if (string.IsNullOrWhiteSpace(mainTextBox.Text) ||
+                mainTextBox.Text.Any(c => ForbiddenChars.Contains(c)))
             {
-                mainTextBox.Text = null;
+                mainTextBox.Text = string.Empty;
                 return;
             }
 
