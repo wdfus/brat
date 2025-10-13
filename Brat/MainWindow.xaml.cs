@@ -99,7 +99,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
-            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
+            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4(    )}:6789");
             using (var context = new BratBaseContext())
             {
 
@@ -184,12 +184,12 @@ namespace Brat
                         {
                             if (user_id == chat.FromUserId)
                             {
-                                var receiver = new Receiver(chat.MessageText.ToString(), chat.SentTime);
+                                var receiver = new Receiver(chat.MessageText.ToString(), chat.SentTime.ToString());
                                 ChatField.Children.Add(receiver);
                             }
                             else
                             {
-                                var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString(), chat.SentTime);
+                                var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString(), chat.SentTime.ToString());
                                 ChatField.Children.Add(sender);
                             }
                         }
@@ -325,7 +325,7 @@ namespace Brat
                 using var doc = JsonDocument.Parse(message);
                 int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
                 string text = doc.RootElement.GetProperty("message_text").GetString();
-                DateTime Time = doc.RootElement.GetProperty("Sent_Time").GetDateTime();
+                string Time = doc.RootElement.GetProperty("SentTime").GetString();
                 Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
                 UpdateLastText(text, fromUserId);
                 if (SelectedToUserId == fromUserId)
