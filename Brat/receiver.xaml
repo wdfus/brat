@@ -15,20 +15,23 @@
         <SolidColorBrush x:Key="Col.Input"     Color="#444444"/>
         <SolidColorBrush x:Key="Col.BubbleL"   Color="#E6E6E6"/>
         <SolidColorBrush x:Key="Col.BubbleR"   Color="#0078D7"/>
-        
+
         <Style x:Key="BubbleLeft" TargetType="Border">
-        <Setter Property="Background" Value="{StaticResource Col.BubbleL}"/>
-        <Setter Property="CornerRadius" Value="12"/>
-        <Setter Property="Padding" Value="12,8"/>
-        <Setter Property="Margin" Value="8"/>
-        <Setter Property="HorizontalAlignment" Value="Left"/>
-    </Style>
+            <Setter Property="Background" Value="{StaticResource Col.BubbleL}"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="8"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid HorizontalAlignment="Left">
-        
+
         <Border Style="{StaticResource BubbleLeft}">
-            <TextBlock x:Name="messageText" TextWrapping="Wrap" Text="Привет!Привет!Привет!!Привет!!Привет!!Привет!!Привет!!вет!!Привет!!Привет!!Привет!!Привет!!Привет!!Привет!Привет!Пт!!Привет!!Привет!!Привет!Привет!Привет!Привет!Привет!Привет!Привет!Привет!" Foreground="Black"/>
+            <StackPanel>
+                <TextBlock x:Name="messageText" TextWrapping="Wrap" Text="Привет!Привет!Привет!!Привет!!Привет!!Привет!!Привет!!вет!!Приветивет!!вет!!Приветивет!!вет!!Привет!!Привет!!Привет!!Привет!!Привет!!Привет!Привет!Пт!!Привет!!Привет!!Привет!Привет!Привет!Привет!Привет!Привет!Привет!Привет!" Foreground="Black"/>
+                <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B"/>
+            </StackPanel>
         </Border>
     </Grid>
 </UserControl>

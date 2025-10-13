@@ -28,9 +28,10 @@ namespace Brat
 
         }
 
-        public Sender(string text, string statusText) : this()
+        public Sender(string text, string statusText, DateTime? dateTime) : this()
         {
             messageText.Text = text + " " + statusText;
+            MessageDate.Text = dateTime.ToString();
         }
     }
 }

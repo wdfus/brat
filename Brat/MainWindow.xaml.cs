@@ -1,6 +1,7 @@
 ﻿using Brat;
 using Brat.Models;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
@@ -158,10 +159,6 @@ namespace Brat
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
-
-
-
-
         }
 
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -187,12 +184,12 @@ namespace Brat
                         {
                             if (user_id == chat.FromUserId)
                             {
-                                var receiver = new Receiver(chat.MessageText.ToString());
+                                var receiver = new Receiver(chat.MessageText.ToString(), chat.SentTime);
                                 ChatField.Children.Add(receiver);
                             }
                             else
                             {
-                                var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString());
+                                var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString(), chat.SentTime);
                                 ChatField.Children.Add(sender);
                             }
                         }
@@ -297,7 +294,8 @@ namespace Brat
                             FromUserId = SelectedFromUserId,
                             UserId = SelectedToUserId,
                             MessageText = mainTextBox.Text,
-                            Status = "notread"
+                            Status = "notread",
+                            SentTime = DateTime.Now,
                         });
                         await context.SaveChangesAsync();
                         LoadMessages(SelectedToUserId, SelectedChatId);
@@ -327,11 +325,12 @@ namespace Brat
                 using var doc = JsonDocument.Parse(message);
                 int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
                 string text = doc.RootElement.GetProperty("message_text").GetString();
+                DateTime Time = doc.RootElement.GetProperty("Sent_Time").GetDateTime();
                 Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
                 UpdateLastText(text, fromUserId);
                 if (SelectedToUserId == fromUserId)
                 {
-                    var receiver = new Receiver(text);
+                    var receiver = new Receiver(text, Time);
                     ChatField.Children.Add(receiver);
                 }
 

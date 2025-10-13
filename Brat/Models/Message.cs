@@ -15,6 +15,7 @@ public partial class Message
 
     public string MessageText { get; set; } = null!;
     public string Status { get; set; } = null!;
+    public DateTime? SentTime { get; set; } = null!;
 
     public virtual Chat Chat { get; set; } = null!;
 

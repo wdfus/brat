@@ -30,9 +30,10 @@ namespace Brat
 
         }
 
-        public Receiver(string text) : this()
+        public Receiver(string text, DateTime? dateTime) : this()
         {
             messageText.Text = text;
+            MessageDate.Text = dateTime.ToString();
         }
     }
 }

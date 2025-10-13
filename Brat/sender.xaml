@@ -27,6 +27,9 @@
 
 
     <Border Style="{StaticResource BubbleLeft}" HorizontalAlignment="Left">
-        <TextBlock x:Name="messageText" TextWrapping="Wrap" Text="Привет!Привет!Привет!!Привет!!Привет!!Привет!!Привет!!вет!!Привет!!Привет!!Привет!!Привет!!Привет!!Привет!Привет!Пт!!Привет!!Привет!!Привет!Привет!Привет!Привет!Привет!Привет!Привет!Привет!" Foreground="White"/>
+        <StackPanel>
+            <TextBlock x:Name="messageText" TextWrapping="Wrap" Text="Привет!Привет!Привет!!Привет!!Привет!!Привет!!Привет!!вет!!Привет!!Привет!!Привет!!Привет!!Привет!!Привет!Привет!Пт!!Привет!!Привет!!Привет!Привет!Привет!Привет!Привет!Привет!Привет!Привет!" Foreground="White"/>
+            <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" Foreground="#FFBCBCBC" FontSize="10"/>
+        </StackPanel>
     </Border>
 </UserControl>
