@@ -40,7 +40,7 @@ namespace Brat
             {
                 MessageDate.Text = time.ToString("HH:mm");
             }
-            if (this.Tag.ToString() == "notread")
+/*            if (this.Tag.ToString() == "notread")
                 this.IsVisibleChanged += (s, e) =>
                 {
                     if (this.IsVisible && this.Tag.ToString() == "notread")
@@ -62,7 +62,7 @@ namespace Brat
                         }
                     else
                         Debug.WriteLine("Элемент скрыт.");
-                };
+                };*/
         }
 
     }

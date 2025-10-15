@@ -43,7 +43,7 @@ namespace Brat
                     TimeTextBox.Text = time.ToString("ddd");
                 }
             }
-            if (user.Status == "read")
+/*            if (user.Status == "read")
             {
                 FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
                 SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
@@ -56,7 +56,7 @@ namespace Brat
             if (CurrentId != user.FromUserId)
             {
                 CheckArrow.Visibility = Visibility.Hidden;
-            }
+            }*/
             this.ThisUser = user;
         }
 
@@ -66,7 +66,7 @@ namespace Brat
             {
                 LastUserText.Text = message;
             }
-            if (Status == "read")
+/*            if (Status == "read")
             {
                 FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
                 SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
@@ -75,7 +75,7 @@ namespace Brat
             {
                 FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickBackColor");
                 SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickFrontColor");
-            }
+            }*/
 
         }
     }

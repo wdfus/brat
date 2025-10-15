@@ -32,6 +32,11 @@ namespace Brat
     {
         private PopupProfile popup;
         private UserRow SelectedUserRow;
+        public static int Myid = 2;
+        private int SelectedToUserId;
+        private int SelectedFromUserId;
+        private int SelectedChatId;
+        private WebSocketClient _wsClient;
         public static class VisualHelper
         {
             public static T FindChildByTag<T>(DependencyObject parent, object tag) where T : FrameworkElement
@@ -53,11 +58,7 @@ namespace Brat
                 return null;
             }
         }
-        public static int Myid = 1;
-        private int SelectedToUserId;
-        private int SelectedFromUserId;
-        private int SelectedChatId;
-        private WebSocketClient _wsClient;
+
         public class UserClass()
         {
             public string FirstName;
@@ -75,7 +76,7 @@ namespace Brat
             public string Username;
         }
 
-        public void UpdateLastText(string text, int fromUserId, string status=null)
+        public void UpdateLastText(string text, int fromUserId, string status = null)
         {
             foreach (var item in UsersList.Items)
             {
@@ -87,7 +88,7 @@ namespace Brat
                         Debug.WriteLine($"Найден элемент с тегом {border.Tag}");
                         // можно выделить, подсветить, прокрутить
                         UsersList.ScrollIntoView(userItem);
-                        
+
                         if (status == null)
                         {
                             userItem.UpdateUserRow(text);
@@ -119,29 +120,49 @@ namespace Brat
                     .Select(c => new
                     {
                         Chat = c,
-                        Companion = c.UserId1 == Myid ? c.UserId2Navigation : c.UserId1Navigation,
-                        LastMessage = context.Messages
-                            .Where(m => m.ChatId == c.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .FirstOrDefault()
+                        User = c.UserId1 == Myid
+                            ? c.UserId2Navigation
+                            : c.UserId1Navigation
                     })
                     .Select(x => new UserClass
                     {
                         ChatId = x.Chat.ChatId,
-                        FromUserId = x.Companion.Id,
-                        ToUserId = x.Chat.UserId1 == Myid ? x.Chat.UserId2 : x.Chat.UserId1,
+                        FromUserId = x.User.Id,
+                        ToUserId = context.Chats
+                        .Where(c => c.ChatId == x.Chat.ChatId && (c.UserId1 == Myid || c.UserId2 == Myid))
+                        .AsEnumerable() // дальше вычисляется в памяти
+                        .Select(c => c.UserId1 == x.User.Id ? c.UserId2 : c.UserId1)
+                        .FirstOrDefault(),
+                        FirstName = x.User.FirstName,
+                        SecondName = x.User.SecondName,
 
-                        FirstName = x.Companion.FirstName,
-                        SecondName = x.Companion.SecondName,
-                        AboutSelf = x.Companion.AboutSelf,
-                        Birthday = x.Companion.Birthday.ToString(),
-                        PhoneNumber = x.Companion.PhoneNumber.ToString(),
-                        Username = x.Companion.Username,
+                        LastText = context.Messages
+                            .Where(m => m.ChatId == x.Chat.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .Select(m => m.MessageText)
+                            .FirstOrDefault(),
 
-                        LastText = x.LastMessage != null ? x.LastMessage.MessageText : null,
-                        LastMessageStatus = x.LastMessage != null ? x.LastMessage.Status : null,
-                        LastMessageTime = x.LastMessage != null ? x.LastMessage.SentTime.ToString() : null,
-                        Status = x.LastMessage != null ? x.LastMessage.Status.ToString() : null
+                        LastMessageStatus = context.Messages
+                            .Where(m => m.ChatId == x.Chat.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .Select(m => m.Status)
+                            .FirstOrDefault(),
+
+                        LastMessageTime = context.Messages
+                            .Where(m => m.ChatId == x.Chat.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .Select(m => m.SentTime)
+                            .FirstOrDefault().ToString(),
+
+                        Status = context.Messages
+                            .Where(m => m.ChatId == x.Chat.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .Select(m => m.Status)
+                            .FirstOrDefault().ToString(),
+                        AboutSelf = x.User.AboutSelf,
+                        Birthday = x.User.Birthday.ToString(),
+                        PhoneNumber = x.User.PhoneNumber.ToString(),
+                        Username = x.User.Username,
                     })
                     .ToList();
 
@@ -235,7 +256,7 @@ namespace Brat
             }
         }
 
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
             chatScroll.ScrollToEnd();
         }
@@ -264,21 +285,22 @@ namespace Brat
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
-            SendMessageFuck();
+            await SendMessageFuck();
         }
 
 
-        async private void SendMessageFuck()
+        private async Task SendMessageFuck()
         {
             List<char> ForbiddenChars = new List<char>
-            {
-                '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
-                '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
-                '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
-                '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
-                '\u007F',       // DEL
-                '\u200B','\u200C','\u200D','\uFEFF' // zero-width
-            };
+                {
+                    '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
+                    '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
+                    '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
+                    '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
+                    '\u007F',       // DEL
+                    '\u200B','\u200C','\u200D','\uFEFF' // zero-width
+                };
+
             if (string.IsNullOrWhiteSpace(mainTextBox.Text) ||
                 mainTextBox.Text.Any(c => ForbiddenChars.Contains(c)))
             {
@@ -286,43 +308,53 @@ namespace Brat
                 return;
             }
 
-            else
+            await using (var context = new BratBaseContext())
             {
-                using (var context = new BratBaseContext())
+                try
                 {
-                    try
+                    var newMessage = new Message
                     {
-                        //System.Windows.MessageBox.Show($"ChatID: {SelectedChatId}\n\nFromUserId: {SelectedFromUserId}\n\n ToUserId{SelectedToUserId}");
-                        var result = context.Messages.Add(new Message
+                        ChatId = SelectedChatId,
+                        FromUserId = SelectedFromUserId,
+                        UserId = SelectedToUserId,
+                        MessageText = mainTextBox.Text,
+                        Status = "notread",
+                        SentTime = DateTime.Now,
+                    };
+
+                    await context.Messages.AddAsync(newMessage);
+                    await context.SaveChangesAsync();
+
+                    // после сохранения можно получить ID нового сообщения
+                    var RecentlySentMessage = await context.Messages
+                        .Where(x => x.ChatId == SelectedChatId)
+                        .OrderByDescending(x => x.MessageId)
+                        .FirstOrDefaultAsync();
+
+                    if (RecentlySentMessage != null)
+                    {
+                        if (SelectedFromUserId == RecentlySentMessage.FromUserId)
                         {
-                            ChatId = SelectedChatId,
-                            FromUserId = SelectedFromUserId,
-                            UserId = SelectedToUserId,
-                            MessageText = mainTextBox.Text,
-                            Status = "notread",
-                            SentTime = DateTime.Now,
-                        });
-                        await context.SaveChangesAsync();
-                        LoadMessages(SelectedToUserId, SelectedChatId);
-                        UpdateLastText(mainTextBox.Text, SelectedToUserId);
-                        mainTextBox.Text = "";
-                        
+                            var sender = new Sender(RecentlySentMessage.MessageText, RecentlySentMessage.Status, RecentlySentMessage.SentTime.ToString());
+                            ChatField.Children.Add(sender);
+                            UpdateLastText(mainTextBox.Text, SelectedToUserId);
+                            mainTextBox.Text = string.Empty;
+                            chatScroll.ScrollToEnd();
+                        }
                     }
-                    catch
-                    {
-                        System.Windows.MessageBox.Show("Что-то случилось");
-                    }
+                }
+                catch
+                {
+                    System.Windows.MessageBox.Show("Что-то случилось");
                 }
             }
         }
 
 
-        private void mainTextBox_KeyDown(object sender, KeyEventArgs e)
+
+
+        private async void mainTextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter)
-            {
-                LoadMessages(SelectedToUserId, SelectedChatId);
-            }
         }
 
         private void OnMessageReceived(string message)
