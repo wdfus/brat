@@ -1,6 +1,7 @@
 ﻿using Brat.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.Pkcs;
 using System.Text;
@@ -30,10 +31,39 @@ namespace Brat
 
         }
 
-        public Receiver(string text, string dateTime) : this()
+        public Receiver(string text, string dateTime, string StatusRead, int MessageId, int CurrentId) : this()
         {
+            this.Tag = StatusRead;
             messageText.Text = text;
-            MessageDate.Text = dateTime.ToString();
+            this.MessageId.Tag = MessageId;
+            if (DateTime.TryParse(dateTime, out DateTime time))
+            {
+                MessageDate.Text = time.ToString("HH:mm");
+            }
+            if (this.Tag.ToString() == "notread")
+                this.IsVisibleChanged += (s, e) =>
+                {
+                    if (this.IsVisible && this.Tag.ToString() == "notread")
+                        using(var context = new BratBaseContext())
+                        {
+                            var message = context.Messages.Find(MessageId);
+                            if (message != null && message.UserId == CurrentId)
+                            {
+                                message.Status = "read";
+                                context.SaveChanges();
+                                this.Tag = "read";
+                                
+                                Debug.WriteLine("Элемент виден и помечен как прочитанный.");
+                            }
+                            else
+                            {
+                                Debug.WriteLine("Блять не прозодить");
+                            }
+                        }
+                    else
+                        Debug.WriteLine("Элемент скрыт.");
+                };
         }
+
     }
 }

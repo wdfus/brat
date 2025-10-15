@@ -6,7 +6,8 @@
              xmlns:local="clr-namespace:Brat"
              mc:Ignorable="d" 
              FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"
-             MaxWidth="385">
+             MaxWidth="385"
+             Tag="StatusRead">
     <UserControl.Resources>
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
         <SolidColorBrush x:Key="Col.Rail"      Color="#5A5A5A"/>
@@ -25,7 +26,7 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid HorizontalAlignment="Left">
+    <Grid HorizontalAlignment="Left" x:Name="MessageId">
 
         <Border Style="{StaticResource BubbleLeft}">
             <StackPanel>

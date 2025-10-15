@@ -67,13 +67,15 @@ namespace Brat
             public int ToUserId;
             public string LastText;
             public string LastMessageStatus;
+            public string LastMessageTime;
             public string Status;
             public string AboutSelf;
             public string Birthday;
             public string PhoneNumber;
+            public string Username;
         }
 
-        public void UpdateLastText(string text, int fromUserId)
+        public void UpdateLastText(string text, int fromUserId, string status=null)
         {
             foreach (var item in UsersList.Items)
             {
@@ -85,8 +87,18 @@ namespace Brat
                         Debug.WriteLine($"Найден элемент с тегом {border.Tag}");
                         // можно выделить, подсветить, прокрутить
                         UsersList.ScrollIntoView(userItem);
-                        userItem.UpdateMessageText(text);
-                        break;
+                        
+                        if (status == null)
+                        {
+                            userItem.UpdateUserRow(text);
+                            break;
+                        }
+                        else
+                        {
+                            userItem.UpdateUserRow(text, status);
+                            break;
+
+                        }
                     }
                 }
             }
@@ -99,63 +111,44 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
 
-            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4(    )}:6789");
+            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
             using (var context = new BratBaseContext())
             {
-
-#pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
-#pragma warning disable CS8602 // Разыменование вероятной пустой ссылки.
                 var Result = context.Chats
                     .Where(c => c.UserId1 == Myid || c.UserId2 == Myid)
                     .Select(c => new
                     {
                         Chat = c,
-                        User = c.UserId1 == Myid
-                            ? c.UserId2Navigation
-                            : c.UserId1Navigation
+                        Companion = c.UserId1 == Myid ? c.UserId2Navigation : c.UserId1Navigation,
+                        LastMessage = context.Messages
+                            .Where(m => m.ChatId == c.ChatId)
+                            .OrderByDescending(m => m.MessageId)
+                            .FirstOrDefault()
                     })
                     .Select(x => new UserClass
                     {
                         ChatId = x.Chat.ChatId,
-                        FromUserId = x.User.Id,
-                        ToUserId = context.Chats
-                        .Where(c => c.ChatId == x.Chat.ChatId && (c.UserId1 == Myid || c.UserId2 == Myid))
-                        .AsEnumerable() // дальше вычисляется в памяти
-                        .Select(c => c.UserId1 == x.User.Id ? c.UserId2 : c.UserId1)
-                        .FirstOrDefault(),
-                        FirstName = x.User.FirstName,
-                        SecondName = x.User.SecondName,
+                        FromUserId = x.Companion.Id,
+                        ToUserId = x.Chat.UserId1 == Myid ? x.Chat.UserId2 : x.Chat.UserId1,
 
-                        LastText = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.MessageText)
-                            .FirstOrDefault(),
+                        FirstName = x.Companion.FirstName,
+                        SecondName = x.Companion.SecondName,
+                        AboutSelf = x.Companion.AboutSelf,
+                        Birthday = x.Companion.Birthday.ToString(),
+                        PhoneNumber = x.Companion.PhoneNumber.ToString(),
+                        Username = x.Companion.Username,
 
-                        LastMessageStatus = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.Status)
-                            .FirstOrDefault(),
-
-                        Status = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.Status)
-                            .FirstOrDefault().ToString(),
-                        AboutSelf = x.User.AboutSelf,
-                        Birthday = x.User.Birthday.ToString(),
-                        PhoneNumber = x.User.PhoneNumber.ToString()
+                        LastText = x.LastMessage != null ? x.LastMessage.MessageText : null,
+                        LastMessageStatus = x.LastMessage != null ? x.LastMessage.Status : null,
+                        LastMessageTime = x.LastMessage != null ? x.LastMessage.SentTime.ToString() : null,
+                        Status = x.LastMessage != null ? x.LastMessage.Status.ToString() : null
                     })
                     .ToList();
-#pragma warning restore CS8602 // Разыменование вероятной пустой ссылки.
-
-#pragma warning disable CS8601 // Возможно, назначение-ссылка, допускающее значение NULL.
 
 
                 foreach (UserClass user in Result)
                 {
-                    var useraaaaaa = new UserRow(user);
+                    var useraaaaaa = new UserRow(user, Myid);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -184,12 +177,12 @@ namespace Brat
                         {
                             if (user_id == chat.FromUserId)
                             {
-                                var receiver = new Receiver(chat.MessageText.ToString(), chat.SentTime.ToString());
+                                var receiver = new Receiver(chat.MessageText.ToString(), chat.SentTime.ToString(), chat.Status, chat.MessageId, Myid);
                                 ChatField.Children.Add(receiver);
                             }
                             else
                             {
-                                var sender = new Sender(chat.MessageText.ToString(), chat.Status.ToString(), chat.SentTime.ToString());
+                                var sender = new Sender(chat.MessageText.ToString(), chat.Status, chat.SentTime.ToString());
                                 ChatField.Children.Add(sender);
                             }
                         }
@@ -260,11 +253,22 @@ namespace Brat
                 if (SelectedUserRow != null && UsersList.Items.Contains(SelectedUserRow))
                 {
                     SelectedUserRow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FFFFFF"));
+                    chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
                 }
+            }
+            if (e.Key == Key.Enter)
+            {
+                SendMessageFuck();
             }
         }
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
+        {
+            SendMessageFuck();
+        }
+
+
+        async private void SendMessageFuck()
         {
             List<char> ForbiddenChars = new List<char>
             {
@@ -302,6 +306,7 @@ namespace Brat
                         LoadMessages(SelectedToUserId, SelectedChatId);
                         UpdateLastText(mainTextBox.Text, SelectedToUserId);
                         mainTextBox.Text = "";
+                        
                     }
                     catch
                     {
@@ -310,6 +315,7 @@ namespace Brat
                 }
             }
         }
+
 
         private void mainTextBox_KeyDown(object sender, KeyEventArgs e)
         {
@@ -325,16 +331,23 @@ namespace Brat
             {
                 using var doc = JsonDocument.Parse(message);
                 int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
+                int MessageId = doc.RootElement.GetProperty("message_id").GetInt32();
                 string text = doc.RootElement.GetProperty("message_text").GetString();
-                string Time = doc.RootElement.GetProperty("SentTime").GetString();
-                Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
-                UpdateLastText(text, fromUserId);
-                if (SelectedToUserId == fromUserId)
-                {
-                    var receiver = new Receiver(text, Time);
-                    ChatField.Children.Add(receiver);
-                }
+                string timeString = doc.RootElement.GetProperty("SentTime").GetString();
+                string Status = doc.RootElement.GetProperty("status").GetString();
 
+                if (DateTime.TryParse(timeString, out DateTime time))
+                {
+                    Console.WriteLine(time.ToString("HH:mm"));
+
+                    Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
+                    UpdateLastText(text, fromUserId);
+                    if (SelectedToUserId == fromUserId)
+                    {
+                        var receiver = new Receiver(text, time.ToString("HH:mm"), Status, MessageId, Myid);
+                        ChatField.Children.Add(receiver);
+                    }
+                }
             });
         }
 

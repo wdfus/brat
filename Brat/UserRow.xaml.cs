@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,7 +24,7 @@ namespace Brat
     public partial class UserRow : UserControl
     {
         public MainWindow.UserClass ThisUser { get; set; }
-        public UserRow(MainWindow.UserClass user)
+        public UserRow(MainWindow.UserClass user, int CurrentId)
         {
             InitializeComponent();
             nameOfUser.Text = user.FirstName + " " + user.SecondName + " " + user.LastMessageStatus;
@@ -31,21 +32,51 @@ namespace Brat
             gridFather.Tag = user.FromUserId;
             this.Tag = user.ChatId;
             TagToUserId.Tag = user.ToUserId;
+            if (DateTime.TryParse(user.LastMessageTime, out DateTime time))
+            {
+                if (time.Day == DateTime.Now.Day && time.Month == DateTime.Now.Month &&  time.Year == DateTime.Now.Year)
+                {
+                    TimeTextBox.Text = time.ToString("HH:mm");
+                }
+                else
+                {
+                    TimeTextBox.Text = time.ToString("ddd");
+                }
+            }
             if (user.Status == "read")
             {
-                HasRead.Fill = new SolidColorBrush(Color.FromRgb(81, 157, 255));
+                FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
+                SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
             }
             else
             {
-                HasRead.Fill = new SolidColorBrush(Colors.LightGray);
+                FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickBackColor");
+                SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickFrontColor");
+            }
+            if (CurrentId != user.FromUserId)
+            {
+                CheckArrow.Visibility = Visibility.Hidden;
             }
             this.ThisUser = user;
         }
 
-        public void UpdateMessageText(string message)
+        public void UpdateUserRow(string message=null, string Status=null)
         {
-            LastUserText.Text = message;
-            return;
+            if (message != null)
+            {
+                LastUserText.Text = message;
+            }
+            if (Status == "read")
+            {
+                FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
+                SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickReadColor");
+            }
+            else
+            {
+                FirstArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickBackColor");
+                SecondArrow.Stroke = (SolidColorBrush)this.TryFindResource("TickFrontColor");
+            }
+
         }
     }
 }

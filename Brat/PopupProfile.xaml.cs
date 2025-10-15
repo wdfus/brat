@@ -28,6 +28,7 @@ namespace Brat
             MainName.Text = $"{user.FirstName} {user.SecondName}";
             AboutSelf.Text = user.AboutSelf;
             DateOfBirthday.Text = user.Birthday;
+            Username.Text = $"@{user.Username}";
         }
 
         private void Close_Click(object sender, RoutedEventArgs e)

@@ -1,6 +1,7 @@
 ﻿using Brat.Models;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -31,7 +32,10 @@ namespace Brat
         public Sender(string text, string statusText, string dateTime) : this()
         {
             messageText.Text = text + " " + statusText;
-            MessageDate.Text = dateTime.ToString();
+            if (DateTime.TryParse(dateTime, out DateTime time))
+            {
+                MessageDate.Text = time.ToString("HH:mm");
+            }
         }
     }
 }
