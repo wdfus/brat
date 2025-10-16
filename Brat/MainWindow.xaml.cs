@@ -277,10 +277,6 @@ namespace Brat
                     chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
                 }
             }
-            if (e.Key == Key.Enter)
-            {
-                SendMessageFuck();
-            }
         }
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
@@ -297,12 +293,10 @@ namespace Brat
                     '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
                     '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
                     '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
-                    '\u007F',       // DEL
-                    '\u200B','\u200C','\u200D','\uFEFF' // zero-width
+                    '\u007F'
                 };
 
-            if (string.IsNullOrWhiteSpace(mainTextBox.Text) ||
-                mainTextBox.Text.Any(c => ForbiddenChars.Contains(c)))
+            if (string.IsNullOrWhiteSpace(mainTextBox.Text))
             {
                 mainTextBox.Text = string.Empty;
                 return;
@@ -349,12 +343,23 @@ namespace Brat
                 }
             }
         }
-
-
-
-
         private async void mainTextBox_KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Shift && borderEnterField.Visibility == Visibility.Visible)
+            {
+                // SHIFT+ENTER → перенос строки
+                var tb = sender as TextBox;
+                int caret = tb.CaretIndex;
+                tb.Text = tb.Text.Insert(caret, Environment.NewLine);
+                tb.CaretIndex = caret + Environment.NewLine.Length;
+                e.Handled = true;
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true;
+                SendMessageFuck(); // отправляем сообщение
+            }
         }
 
         private void OnMessageReceived(string message)
@@ -472,5 +477,46 @@ namespace Brat
             }
         }
 
+        private void mainTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox tb)
+            {
+                tb.Height = Double.NaN; // авто
+                tb.UpdateLayout();
+
+                var formattedText = new FormattedText(
+                    tb.Text + " ",
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    tb.FlowDirection,
+                    new Typeface(tb.FontFamily, tb.FontStyle, tb.FontWeight, tb.FontStretch),
+                    tb.FontSize,
+                    Brushes.White,
+                    new NumberSubstitution(),
+                    TextFormattingMode.Display);
+
+
+                double desiredHeight = formattedText.Height + 20;
+                tb.Height = Math.Min(Math.Max(40, desiredHeight), 200);
+                MainGrid.RowDefinitions[2].Height = new GridLength(Math.Min(Math.Max(50, desiredHeight), 250), GridUnitType.Star);
+                Debug.WriteLine($"{MainGrid.RowDefinitions[2].Height.Value}");
+            }
+        }
+
+        private async void mainTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // SHIFT+ENTER — вставляем перевод строки (разрешаем)
+            if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Shift)
+            {
+                // Позволяем вставку новой строки — ничего не делаем
+                return;
+            }
+
+            // ENTER (без Shift) — отправляем и блокируем дальнейшую обработку
+            if (e.Key == Key.Enter)
+            {
+                e.Handled = true; // предотвращаем вставку '\n'
+                await SendMessageFuck(); // или SendMessageFuck(), в зависимости от сигнатуры
+            }
+        }
     }
 }
