@@ -285,7 +285,7 @@
                                    FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center"/></Border-->
             <!-- ОБЛАСТЬ СООБЩЕНИЙ -->
             <Grid Grid.Row="1" Grid.Column="2" Background="{StaticResource Col.Input}">
-                <ScrollViewer Padding="10,10" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden">
+                <ScrollViewer Padding="10,10" x:Name="chatScroll" VerticalScrollBarVisibility="Hidden" ScrollChanged="chatScroll_ScrollChanged">
                     <StackPanel x:Name="ChatField" HorizontalAlignment="Center" VerticalAlignment="Center">
                         <TextBlock FontSize="20" Text="Выберите, кому вы хотите написать..." Foreground="White" FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"/>
                     </StackPanel>

@@ -180,7 +180,7 @@ namespace Brat
 
         }
 
-        private void LoadMessages(int user_id = -1, int chatId = -1)
+        /*private void LoadMessages(int user_id = -1, int chatId = -1)
         {
             if (user_id != -1 && chatId != -1)
             {
@@ -238,6 +238,79 @@ namespace Brat
                 }
                 TopRow.Visibility = Visibility.Collapsed;
             }
+        }*/
+
+        private async Task LoadMessages(int userId = -1, int chatId = -1)
+        {
+            ChatField.Children.Clear();
+
+            if (userId == -1 || chatId == -1)
+            {
+                // Заглушка, если чат не выбран
+                ChatField.HorizontalAlignment = HorizontalAlignment.Center;
+                ChatField.VerticalAlignment = VerticalAlignment.Center;
+                ChatField.Children.Add(new TextBlock
+                {
+                    FontSize = 24,
+                    Text = "Выберите, кому вы хотите написать...",
+                    Foreground = Brushes.White,
+                });
+
+                TopRow.Visibility = Visibility.Collapsed;
+                SetHeaderText("");
+                return;
+            }
+
+            borderEnterField.Visibility = Visibility.Visible;
+            ChatField.HorizontalAlignment = HorizontalAlignment.Left;
+            ChatField.VerticalAlignment = VerticalAlignment.Bottom;
+            chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
+
+            try
+            {
+                using var context = new BratBaseContext();
+
+                // ✅ Берём сообщения сразу с фильтром, без ToList() до фильтрации
+                var messages = await context.Messages
+                    .Where(m => m.ChatId == chatId)
+                    .OrderBy(m => m.SentTime)
+ // ⚡ Ограничение по количеству (для производительности)
+                    .ToListAsync();
+
+                foreach (var chat in messages)
+                {
+                    if (userId == chat.FromUserId)
+                    {
+                        ChatField.Children.Add(new MessageCloud(chat.SentTime.ToString(), chat.MessageText, "reciever", chat.MessageId, Myid, chat.Status));
+                    }
+                    else
+                    {
+                        ChatField.Children.Add(new MessageCloud(chat.SentTime.ToString(), chat.MessageText, "sender", chat.MessageId, Myid));
+                    }
+                }
+
+                // Обновляем заголовок чата
+                var headerName = await context.Users
+                    .Where(u => u.Id == SelectedToUserId)
+                    .Select(u => new { u.FirstName, u.SecondName })
+                    .FirstOrDefaultAsync();
+
+                if (headerName != null)
+                    SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
+
+                TopRow.Visibility = Visibility.Visible;
+                chatScroll.ScrollToEnd();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
+            }
+        }
+
+        private void SetHeaderText(string text)
+        {
+            if (ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) is TextBlock path)
+                path.Text = text;
         }
 
 
@@ -329,7 +402,7 @@ namespace Brat
                     {
                         if (SelectedFromUserId == RecentlySentMessage.FromUserId)
                         {
-                            var sender = new Sender(RecentlySentMessage.MessageText, RecentlySentMessage.Status, RecentlySentMessage.SentTime.ToString());
+                            var sender = new MessageCloud(RecentlySentMessage.SentTime.ToString(), RecentlySentMessage.MessageText, "sender", RecentlySentMessage.MessageId, Myid, "notread");
                             ChatField.Children.Add(sender);
                             UpdateLastText(mainTextBox.Text, SelectedToUserId);
                             mainTextBox.Text = string.Empty;
@@ -381,7 +454,7 @@ namespace Brat
                     UpdateLastText(text, fromUserId);
                     if (SelectedToUserId == fromUserId)
                     {
-                        var receiver = new Receiver(text, time.ToString("HH:mm"), Status, MessageId, Myid);
+                        var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, Status); ;
                         ChatField.Children.Add(receiver);
                     }
                 }
@@ -517,6 +590,11 @@ namespace Brat
                 e.Handled = true; // предотвращаем вставку '\n'
                 await SendMessageFuck(); // или SendMessageFuck(), в зависимости от сигнатуры
             }
+        }
+
+        private void chatScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+
         }
     }
 }
