@@ -37,7 +37,7 @@ namespace Brat
         DateTime? LastDate = null;
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
-        public static int Myid = 2;
+        public static int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int LoadedMessagesCount = 0;
@@ -295,6 +295,16 @@ namespace Brat
 
                 if (!LoadMore)
                 {
+                    var headerName = await context.Users
+                    .Where(u => u.Id == SelectedToUserId)
+                    .Select(u => new { u.FirstName, u.SecondName })
+                    .FirstOrDefaultAsync();
+
+                    if (headerName != null)
+                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
+
+                    TopRow.Visibility = Visibility.Visible;
+                    FirstLoadedMessages = true;
                     var messages = await context.Messages
                     .Where(x => x.ChatId == chatId)
                     .OrderByDescending(x => x.MessageId)   // от старого к новому
@@ -318,7 +328,6 @@ namespace Brat
                             };
                             ChatField.Children.Add(dateLabel);
                             LastDate = chat.SentTime.Value.Date;
-                            Debug.WriteLine(LastDate);
                         }
                         var bubble = new MessageCloud(
                             chat.SentTime?.ToString() ?? "",
@@ -333,8 +342,8 @@ namespace Brat
                             FirstDate = chat.SentTime.Value.Date;
                         }
                     }
-                    
-                        LoadedMessagesCount += messages.Count;
+
+                    LoadedMessagesCount += messages.Count;
 
                 }
 
@@ -371,7 +380,14 @@ namespace Brat
                                 Margin = new Thickness(0, 8, 0, 8),
                                 FontWeight = FontWeights.Bold
                             };
-                            ChatField.Children.Insert(0, bubble);
+                            if (LastDate != FirstDate)
+                            {
+                                ChatField.Children.Insert(0, bubble);
+                            }
+                            else
+                            {
+                                ChatField.Children.Insert(1, bubble);
+                            }
                             if (LastDate != FirstDate) ChatField.Children.Insert(0, dateLabel);
                             LastDate = chat.SentTime.Value.Date;
 
@@ -394,16 +410,6 @@ namespace Brat
                 // Скролим вниз, если это первая загрузка
                 if (!LoadMore)
                 {
-                    var headerName = await context.Users
-                    .Where(u => u.Id == SelectedToUserId)
-                    .Select(u => new { u.FirstName, u.SecondName })
-                    .FirstOrDefaultAsync();
-
-                    if (headerName != null)
-                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
-
-                    TopRow.Visibility = Visibility.Visible;
-                    FirstLoadedMessages = true;
                     chatScroll.ScrollToEnd();
                 }
             }
@@ -411,109 +417,6 @@ namespace Brat
             {
                 Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
             }
-        }
-
-        private async Task LoadMessagesNew(int userId = -1, int chatId = -1, bool LoadMore = false)
-        {
-            if ((userId == -1 || chatId == -1) && !LoadMore)
-            {
-                ChatField.Children.Clear();
-                // Заглушка, если чат не выбран
-                ChatField.HorizontalAlignment = HorizontalAlignment.Center;
-                ChatField.VerticalAlignment = VerticalAlignment.Center;
-                ChatField.Children.Add(new TextBlock
-                {
-                    FontSize = 24,
-                    Text = "Выберите, кому вы хотите написать...",
-                    Foreground = Brushes.White,
-                });
-
-                TopRow.Visibility = Visibility.Collapsed;
-                SetHeaderText("");
-                return;
-            }
-
-            borderEnterField.Visibility = Visibility.Visible;
-            ChatField.HorizontalAlignment = HorizontalAlignment.Left;
-            ChatField.VerticalAlignment = VerticalAlignment.Bottom;
-            chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
-
-            try
-            {
-                using var context = new BratBaseContext();
-
-                int SkipCount = LoadMore ? LoadedMessagesCount : 0;
-
-                var result = await context.Messages
-                .Where(x => x.ChatId == chatId)
-                .OrderByDescending(x => x.MessageId)   // от старого к новому
-                .Skip(SkipCount)
-                .Take(20)
-                .ToListAsync();
-                if (!LoadMore) ChatField.Children.Clear();
-                var messages = LoadMore? result.AsEnumerable().Reverse() : result;
-                double prevExtentHeight = LoadMore ? chatScroll.ExtentHeight : 0;
-                double prevOffset = LoadMore ? chatScroll.VerticalOffset : 0;
-                foreach (var chat in messages)
-                {
-                    var bubble = new MessageCloud(
-                    chat.SentTime?.ToString() ?? "",
-                    chat.MessageText,
-                    userId == chat.FromUserId ? "reciever" : "sender",
-                    chat.MessageId,
-                    Myid,
-                    chat.Status);
-                    if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
-                    {
-                        var dateLabel = new TextBlock
-                        {
-                            Text = GetDateLabel((DateTime)chat.SentTime),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Foreground = Brushes.Gray,
-                            Margin = new Thickness(0, 8, 0, 8),
-                            FontWeight = FontWeights.Bold
-                        };
-                        ChatField.Children.Add(dateLabel);
-                        LastDate = chat.SentTime.Value.Date;
-                        Debug.WriteLine(LastDate);
-
-
-                        if (LoadMore) ChatField.Children.Insert(0, bubble);
-                        if (LoadMore) ChatField.Children.Insert(0, dateLabel);
-                        if (!LoadMore) ChatField.Children.Add(bubble);
-                    }
-                    else
-                    {
-                        if (LoadMore) ChatField.Children.Insert(1, bubble);
-                    }
-                }
-                LoadedMessagesCount += result.Count;
-                chatScroll.UpdateLayout();
-                double newExtentHeight = LoadMore ? chatScroll.ExtentHeight : 0;
-                if (LoadMore) chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
-                if (!LoadMore)
-                {
-                    var headerName = await context.Users
-                    .Where(u => u.Id == SelectedToUserId)
-                    .Select(u => new { u.FirstName, u.SecondName })
-                    .FirstOrDefaultAsync();
-
-                    if (headerName != null)
-                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
-
-                    TopRow.Visibility = Visibility.Visible;
-                    FirstLoadedMessages = true;
-                    chatScroll.ScrollToEnd();
-                }
-
-
-            }
-
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            }
-
         }
 
         private void SetHeaderText(string text)
@@ -587,6 +490,7 @@ namespace Brat
 
             await using (var context = new BratBaseContext())
             {
+                DateTime? SentTime = DateTime.Now;
                 try
                 {
                     var newMessage = new Message
@@ -596,7 +500,7 @@ namespace Brat
                         UserId = SelectedToUserId,
                         MessageText = mainTextBox.Text,
                         Status = "notread",
-                        SentTime = DateTime.Now,
+                        SentTime = SentTime,
                     };
 
                     await context.Messages.AddAsync(newMessage);
@@ -613,10 +517,25 @@ namespace Brat
                         if (SelectedFromUserId == RecentlySentMessage.FromUserId)
                         {
                             var sender = new MessageCloud(RecentlySentMessage.SentTime.ToString(), RecentlySentMessage.MessageText, "sender", RecentlySentMessage.MessageId, Myid, "notread");
+                            if (LastDate == null || LastDate.Value.Date != SentTime.Value.Date)
+                            {
+                                var dateLabel = new TextBlock
+                                {
+                                    Text = GetDateLabel((DateTime)SentTime),
+                                    HorizontalAlignment = HorizontalAlignment.Center,
+                                    Foreground = Brushes.Gray,
+                                    Margin = new Thickness(0, 8, 0, 8),
+                                    FontWeight = FontWeights.Bold
+                                };
+                                ChatField.Children.Add(dateLabel);
+                                LastDate = SentTime.Value.Date;
+                            }
+
                             ChatField.Children.Add(sender);
                             UpdateLastText(mainTextBox.Text, SelectedToUserId);
                             mainTextBox.Text = string.Empty;
                             chatScroll.ScrollToEnd();
+                            Debug.WriteLine(LastDate);
                         }
                     }
                 }
