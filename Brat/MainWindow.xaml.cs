@@ -1,6 +1,7 @@
 ﻿using Brat;
 using Brat.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.Net;
@@ -20,6 +21,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Xceed.Wpf.AvalonDock.Layout;
 using Xceed.Wpf.Toolkit;
 using static System.Net.Mime.MediaTypeNames;
@@ -37,11 +39,13 @@ namespace Brat
         DateTime? LastDate = null;
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
+        private int _lastLineCount = 1;
         public static int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int LoadedMessagesCount = 0;
         private int SelectedChatId;
+        private string FilePath = string.Empty;
         private WebSocketClient _wsClient;
         public static class VisualHelper
         {
@@ -94,7 +98,6 @@ namespace Brat
                         Debug.WriteLine($"Найден элемент с тегом {border.Tag}");
                         // можно выделить, подсветить, прокрутить
                         UsersList.ScrollIntoView(userItem);
-
                         if (status == null)
                         {
                             userItem.UpdateUserRow(text);
@@ -287,12 +290,6 @@ namespace Brat
 
                 int SkipCount = LoadMore ? LoadedMessagesCount : 0;
 
-
-                // ✅ Берём сообщения сразу с фильтром, без ToList() до фильтрации
-
-
-
-
                 if (!LoadMore)
                 {
                     var headerName = await context.Users
@@ -335,8 +332,12 @@ namespace Brat
                             userId == chat.FromUserId ? "reciever" : "sender",
                             chat.MessageId,
                             Myid,
-                            chat.Status);
+                            chat.FromUserId,
+                            chat.Status,
+                            !string.IsNullOrEmpty(chat.CaptionPath) ? chat.CaptionPath: "");
+                        bubble.DeleteRequested += Message_DeleteRequested;
                         ChatField.Children.Add(bubble);
+
                         if (chat == First)
                         {
                             FirstDate = chat.SentTime.Value.Date;
@@ -368,7 +369,10 @@ namespace Brat
                             userId == chat.FromUserId ? "reciever" : "sender",
                             chat.MessageId,
                             Myid,
-                            chat.Status);
+                            chat.FromUserId,
+                            chat.Status,
+                            !string.IsNullOrEmpty(chat.CaptionPath) ? chat.CaptionPath : "");
+                        bubble.DeleteRequested += Message_DeleteRequested;
 
                         if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
                         {
@@ -401,7 +405,7 @@ namespace Brat
                     LoadedMessagesCount += messages.Count;
                     chatScroll.UpdateLayout();
                     double newExtentHeight = chatScroll.ExtentHeight;
-                    chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+                    chatScroll.ScrollToVerticalOffset((newExtentHeight - prevExtentHeight));
                 }
 
 
@@ -416,6 +420,20 @@ namespace Brat
             catch (Exception ex)
             {
                 Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
+            }
+        }
+
+
+        private void Message_DeleteRequested(object sender, MessageCloud message)
+        {
+            ChatField.Children.Remove(message);
+            ChatField.UpdateLayout();
+            if (ChatField.Children.Count > 0)
+            {
+                var lastChild = ChatField.Children[ChatField.Children.Count - 1];
+                // Например, привести к нужному типу
+                var lastMessage = lastChild as MessageCloud;
+                UpdateLastText(lastMessage.messageText.Text, SelectedToUserId, lastMessage.StatusRead);
             }
         }
 
@@ -467,11 +485,11 @@ namespace Brat
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
-            await SendMessageFuck();
+            await SendMessageFuck(watermarkTextBox: mainTextBox);
         }
 
 
-        private async Task SendMessageFuck()
+        public async Task SendMessageFuck(string FilePath="", WatermarkTextBox watermarkTextBox = null)
         {
             List<char> ForbiddenChars = new List<char>
                 {
@@ -482,10 +500,13 @@ namespace Brat
                     '\u007F'
                 };
 
-            if (string.IsNullOrWhiteSpace(mainTextBox.Text))
+            if (watermarkTextBox != null && string.IsNullOrWhiteSpace(watermarkTextBox.Text))
             {
-                mainTextBox.Text = string.Empty;
-                return;
+                if (watermarkTextBox == mainTextBox)
+                {
+                    watermarkTextBox.Text = string.Empty;
+                    return;
+                }
             }
 
             await using (var context = new BratBaseContext())
@@ -498,7 +519,9 @@ namespace Brat
                         ChatId = SelectedChatId,
                         FromUserId = SelectedFromUserId,
                         UserId = SelectedToUserId,
-                        MessageText = mainTextBox.Text,
+                        MessageText = watermarkTextBox.Text,
+                        MessageType = string.IsNullOrEmpty(FilePath) ? "message" : "caption",
+                        CaptionPath = string.IsNullOrEmpty(FilePath) ? "" : FilePath,
                         Status = "notread",
                         SentTime = SentTime,
                     };
@@ -516,7 +539,8 @@ namespace Brat
                     {
                         if (SelectedFromUserId == RecentlySentMessage.FromUserId)
                         {
-                            var sender = new MessageCloud(RecentlySentMessage.SentTime.ToString(), RecentlySentMessage.MessageText, "sender", RecentlySentMessage.MessageId, Myid, "notread");
+                            var sender = new MessageCloud(RecentlySentMessage.SentTime.ToString(), RecentlySentMessage.MessageText, "sender", RecentlySentMessage.MessageId, Myid, RecentlySentMessage.UserId, "notread", string.IsNullOrEmpty(FilePath) ? "" : FilePath);
+                            sender.DeleteRequested += Message_DeleteRequested;
                             if (LastDate == null || LastDate.Value.Date != SentTime.Value.Date)
                             {
                                 var dateLabel = new TextBlock
@@ -532,8 +556,9 @@ namespace Brat
                             }
 
                             ChatField.Children.Add(sender);
-                            UpdateLastText(mainTextBox.Text, SelectedToUserId);
-                            mainTextBox.Text = string.Empty;
+                            ChatField.UpdateLayout();
+                            UpdateLastText(watermarkTextBox.Text, SelectedToUserId);
+                            watermarkTextBox.Text = string.Empty;
                             chatScroll.ScrollToEnd();
                             Debug.WriteLine(LastDate);
                         }
@@ -560,7 +585,7 @@ namespace Brat
             if (e.Key == Key.Enter)
             {
                 e.Handled = true;
-                SendMessageFuck(); // отправляем сообщение
+                await SendMessageFuck(watermarkTextBox: mainTextBox);
             }
         }
 
@@ -583,7 +608,7 @@ namespace Brat
                     UpdateLastText(text, fromUserId);
                     if (SelectedToUserId == fromUserId)
                     {
-                        var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, Status); ;
+                        var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, fromUserId, Status); ;
                         ChatField.Children.Add(receiver);
                     }
                 }
@@ -683,9 +708,8 @@ namespace Brat
         {
             if (sender is TextBox tb)
             {
-                tb.Height = Double.NaN; // авто
                 tb.UpdateLayout();
-
+                Debug.WriteLine($"{MainGrid.RowDefinitions[2].Height.Value}");
                 var formattedText = new FormattedText(
                     tb.Text + " ",
                     System.Globalization.CultureInfo.CurrentCulture,
@@ -695,12 +719,39 @@ namespace Brat
                     Brushes.White,
                     new NumberSubstitution(),
                     TextFormattingMode.Display);
-
-
                 double desiredHeight = formattedText.Height + 20;
-                tb.Height = Math.Min(Math.Max(40, desiredHeight), 200);
-                MainGrid.RowDefinitions[2].Height = new GridLength(Math.Min(Math.Max(50, desiredHeight), 250), GridUnitType.Star);
-                Debug.WriteLine($"{MainGrid.RowDefinitions[2].Height.Value}");
+
+                if (tb.LineCount > _lastLineCount)
+                {
+                    Debug.WriteLine("🔥 Добавилась новая строка — текст переполнил поле!");
+                    MainGrid.RowDefinitions[2].Height = new GridLength(MainGrid.RowDefinitions[2].Height.Value + 20);
+
+                }
+                else if (tb.LineCount > 0 && tb.LineCount < _lastLineCount)
+                {
+                    MainGrid.RowDefinitions[2].Height = new GridLength(MainGrid.RowDefinitions[2].Height.Value - 20);
+                }
+
+                else if (tb.LineCount == 1)
+                {
+                    MainGrid.RowDefinitions[2].Height = new GridLength(60);
+
+                }
+                else if (tb.LineCount == 0)
+                {
+                    MainGrid.RowDefinitions[2].Height = new GridLength(60);
+
+                }
+                if (string.IsNullOrEmpty(tb.Text))
+                {
+                    MainGrid.RowDefinitions[2].Height = new GridLength(60);
+                }
+                _lastLineCount = tb.LineCount;
+                //tb.Height = Math.Min(Math.Max(40, desiredHeight), 200);
+                //MainGrid.RowDefinitions[2].Height = new GridLength(Math.Min(Math.Max(50, desiredHeight), 250), GridUnitType.Star);
+
+
+
             }
         }
 
@@ -717,7 +768,7 @@ namespace Brat
             if (e.Key == Key.Enter)
             {
                 e.Handled = true; // предотвращаем вставку '\n'
-                await SendMessageFuck(); // или SendMessageFuck(), в зависимости от сигнатуры
+                await SendMessageFuck(watermarkTextBox: mainTextBox); // или SendMessageFuck(), в зависимости от сигнатуры
             }
         }
 
@@ -726,6 +777,24 @@ namespace Brat
             if (e.VerticalOffset == 0 && FirstLoadedMessages == true) // пользователь долистал вверх
             {
                 await LoadMessages(SelectedToUserId, SelectedChatId, LoadMore: true);
+            }
+        }
+
+        private async void AttachFile_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Выберите файл",
+                Filter = "Изображения|*.jpg;*.jpeg;*.png;*.gif|Видео|*.mp4;*.avi;*.mov|Все файлы|*.*",
+                Multiselect = false
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                FilePath = dialog.FileName;
+                CaptionPopup captionPopup = new CaptionPopup(FilePath);
+                captionPopup.Show();
+
             }
         }
     }

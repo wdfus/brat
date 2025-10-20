@@ -14,6 +14,8 @@ public partial class Message
     public int UserId { get; set; }
 
     public string MessageText { get; set; } = null!;
+    public string CaptionPath { get; set; } = null!;
+    public string MessageType { get; set; } = null!;
     public string Status { get; set; } = null!;
     public DateTime? SentTime { get; set; } = null!;
 

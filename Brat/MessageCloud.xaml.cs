@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Brat.Models;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,32 +23,111 @@ namespace Brat
     /// </summary>
     public partial class MessageCloud : UserControl
     {
+        public string StatusRead;
+        public int FromUserId;
         public MessageCloud()
         {
             InitializeComponent();
 
         }
-        public MessageCloud(string dateTime, string text, string MessageType, int MessageId, int CurrentId, string StatusRead = "") : this()
+        public MessageCloud(string dateTime, string text, string MessageType, int MessageId, int CurrentId, int FromUserId, string StatusRead = "", string FilePath = "") : this()
         {
+            Debug.WriteLine($" пенис : {FilePath}");
             this.MessageId.Tag = MessageId;
             messageText.Text = text;
+            this.FromUserId = FromUserId;
             if (DateTime.TryParse(dateTime, out DateTime time))
             {
                 MessageDate.Text = time.ToString("HH:mm");
             }
             if (MessageType == "sender")
             {
-                messageText.Text += $" {StatusRead}";
                 Bubble.Style = (Style)this.FindResource("BubbleSender");
                 messageText.Style = (Style)this.FindResource("TextSender");
+                ReadStatus.Text = StatusRead;
+
             }
             else if (MessageType == "reciever")
             {
                 Bubble.Style = (Style)this.FindResource("BubbleReciever");
                 messageText.Style = (Style)this.FindResource("TextReciever");
                 this.Tag = StatusRead;
+                StackBubble.Children.Remove(ReadStatus);
+            }
+            if (!string.IsNullOrEmpty(FilePath))
+            {
 
+                Capture.Visibility = Visibility.Visible;
+                Capture.Source = new BitmapImage(new Uri(FilePath));
+                Bubble.Padding = new Thickness(0);
+                StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
+                messageText.Margin = new Thickness(10, 10, 0, 0);
             }
         }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            DeleteRequested?.Invoke(this, this);
+            using (var context = new BratBaseContext())
+            {
+                var DeletingMessage = context.Messages.Where(m => m.MessageId == (int)this.MessageId.Tag).FirstOrDefault();
+                context.Messages.Remove(DeletingMessage);
+                context.SaveChanges();
+            }
+        }
+
+        public event EventHandler<MessageCloud> DeleteRequested;
+
+        private void StackTimeStatus_Loaded(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void Capture_Loaded(object sender, RoutedEventArgs e)
+        {
+        }
+
+        private void AvatarImage_Loaded(object sender, RoutedEventArgs e)
+        {
+            UpdateImageClip(sender as System.Windows.Controls.Image, 12); // радиус в px
+        }
+
+        private void AvatarImage_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateImageClip(sender as System.Windows.Controls.Image, 12);
+        }
+
+        private void UpdateImageClip(System.Windows.Controls.Image img, double radius)
+        {
+            if (img == null) return;
+
+            double w = img.ActualWidth;
+            double h = img.ActualHeight;
+            if (w <= 0 || h <= 0) return;
+
+            var figure = new PathFigure { StartPoint = new Point(radius, 0) };
+            var segments = new PathSegmentCollection
+                {
+                    // Верхняя левая дуга
+                    new QuadraticBezierSegment(new Point(0, 0), new Point(0, radius), true),
+
+                    // Левая сторона
+                    new LineSegment(new Point(0, h), true),
+
+                    // Нижняя сторона
+                    new LineSegment(new Point(w, h), true),
+
+                    // Правая сторона вверх
+                    new LineSegment(new Point(w, radius), true),
+
+                    // Верхняя правая дуга
+                    new QuadraticBezierSegment(new Point(w, 0), new Point(w - radius, 0), true)
+                };
+
+            figure.Segments = segments;
+            figure.IsClosed = true;
+
+            img.Clip = new PathGeometry(new[] { figure });
+        }
+
     }
 }

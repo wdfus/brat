@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:Brat"
              mc:Ignorable="d" 
              FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"
-             MaxWidth="385"
+             MaxWidth="480"
              Tag="StatusRead">
     <UserControl.Resources>
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
@@ -42,10 +42,28 @@
     <Grid HorizontalAlignment="Left" x:Name="MessageId">
 
         <Border Style="{StaticResource BubbleSender}" x:Name="Bubble">
-            <StackPanel>
-                <TextBlock Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" Text="Привет!Привет!Привет!!Привет!!Привет!!Привет!!Привет!!вет!!Приветивет!!вет!!Приветивет!!вет!!Привет!!Привет!!Привет!!Привет!!Привет!!Привет!Привет!Пт!!Привет!!Привет!!Привет!Привет!Привет!Привет!Привет!Привет!Привет!Привет!"/>
-                <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B"/>
+            <StackPanel Orientation="Vertical" x:Name="StackBubble">
+                <Image x:Name="Capture" 
+                           Source="/xxx.jpg"
+                       Stretch="UniformToFill"
+                       Loaded="AvatarImage_Loaded"
+                       SizeChanged="AvatarImage_SizeChanged"/>  
+                
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" Text="" MaxWidth="370" HorizontalAlignment="Left"/>
+                    <StackPanel Orientation="Horizontal" x:Name="StackTimeStatus" Loaded="StackTimeStatus_Loaded" HorizontalAlignment="Right">
+                        <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B" VerticalAlignment="Bottom" Margin="10,0,0,0"/>
+                        <TextBlock x:Name="ReadStatus" Text="notread" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Ответить" />
+                    <MenuItem Header="Переслать"/>
+                    <MenuItem Header="Удалить" Click="MenuItem_Click" />
+                </ContextMenu>
+            </Border.ContextMenu>
         </Border>
     </Grid>
 </UserControl>

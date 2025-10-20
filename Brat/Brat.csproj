@@ -19,6 +19,7 @@
     <None Remove="Fonts\SF-Pro-Rounded-Thin.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Ultralight.otf" />
     <None Remove="Fonts\x.png" />
+    <None Remove="x.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -65,6 +66,7 @@
     <Resource Include="Fonts\x.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="x.png" />
   </ItemGroup>
 
   <ItemGroup>
