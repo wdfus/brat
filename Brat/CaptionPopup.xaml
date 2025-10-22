@@ -36,8 +36,15 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
-            <StackPanel Grid.ColumnSpan="4">
-                <Image Source="/Fonts/x.png" x:Name="CapturePlace" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <StackPanel Grid.ColumnSpan="4" x:Name="Contanier">
+                <TextBlock FontSize="12" Foreground="White" Text="Отправить как файл" HorizontalAlignment="Left" FontWeight="Bold" Margin="0,0,0,40" x:Name="SendHowTextBlock"/>
+                <Image Source="/Fonts/x.png" x:Name="CapturePlace" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                <StackPanel x:Name="VanyaChmo" Visibility="Collapsed">
+                    <TextBlock FontSize="12" Foreground="White" Text="Название файла.Xlsx" HorizontalAlignment="Center"/>
+                    <Separator Margin="0, 8" x:Name="SendHowFileSeparator"/>
+                    <TextBlock FontSize="12" Foreground="White" Text="Название файла.Xlsx" HorizontalAlignment="Center"/>
+                    <Separator Margin="0, 8"/>
+                </StackPanel>
             </StackPanel>
             <Border BorderThickness="0,0,0,1" BorderBrush="Gray" Grid.Row="1" Grid.ColumnSpan="4" Margin="0, 0, 0, 15">
                 <StackPanel>

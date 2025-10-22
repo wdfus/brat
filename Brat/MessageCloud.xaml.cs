@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,7 +35,6 @@ namespace Brat
         {
             Debug.WriteLine($" пенис : {FilePath}");
             this.MessageId.Tag = MessageId;
-            messageText.Text = text;
             this.FromUserId = FromUserId;
             if (DateTime.TryParse(dateTime, out DateTime time))
             {
@@ -42,6 +42,7 @@ namespace Brat
             }
             if (MessageType == "sender")
             {
+                messageText.Text = text;
                 Bubble.Style = (Style)this.FindResource("BubbleSender");
                 messageText.Style = (Style)this.FindResource("TextSender");
                 ReadStatus.Text = StatusRead;
@@ -49,6 +50,7 @@ namespace Brat
             }
             else if (MessageType == "reciever")
             {
+                messageText.Text = text;
                 Bubble.Style = (Style)this.FindResource("BubbleReciever");
                 messageText.Style = (Style)this.FindResource("TextReciever");
                 this.Tag = StatusRead;
@@ -56,12 +58,21 @@ namespace Brat
             }
             if (!string.IsNullOrEmpty(FilePath))
             {
-
-                Capture.Visibility = Visibility.Visible;
-                Capture.Source = new BitmapImage(new Uri(FilePath));
-                Bubble.Padding = new Thickness(0);
-                StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
-                messageText.Margin = new Thickness(10, 10, 0, 0);
+                try
+                {
+                    Capture.Visibility = Visibility.Visible;
+                    Debug.WriteLine($" пенис 2: {FilePath}");
+                    Capture.Source = new BitmapImage(new Uri(FilePath));
+                    Bubble.Padding = new Thickness(0);
+                    StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
+                    messageText.Margin = new Thickness(10, 10, 0, 0);
+                }
+                catch (Exception ex)
+                {
+                    HyperLinkMessage.NavigateUri = new Uri(FilePath);
+                    HyperLinkMessage.Inlines.Clear();
+                    HyperLinkMessage.Inlines.Add("Открыть файл");
+                }
             }
         }
 
@@ -129,5 +140,23 @@ namespace Brat
             img.Clip = new PathGeometry(new[] { figure });
         }
 
+        private void HyperLinkMessage_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try
+            {
+                string path = e.Uri.LocalPath;
+
+                if (File.Exists(path))
+                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                else
+                    MessageBox.Show("Файл не найден: " + path);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}");
+            }
+
+            e.Handled = true;
+        }
     }
 }

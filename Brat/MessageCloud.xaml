@@ -47,10 +47,15 @@
                            Source="/xxx.jpg"
                        Stretch="UniformToFill"
                        Loaded="AvatarImage_Loaded"
-                       SizeChanged="AvatarImage_SizeChanged"/>  
+                       SizeChanged="AvatarImage_SizeChanged"
+                       />  
                 
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" Text="" MaxWidth="370" HorizontalAlignment="Left"/>
+                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" Text="" MaxWidth="370" HorizontalAlignment="Left">
+                        <Hyperlink x:Name="HyperLinkMessage" RequestNavigate="HyperLinkMessage_RequestNavigate">
+                            Открыть файл
+                        </Hyperlink>
+                    </TextBlock>
                     <StackPanel Orientation="Horizontal" x:Name="StackTimeStatus" Loaded="StackTimeStatus_Loaded" HorizontalAlignment="Right">
                         <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B" VerticalAlignment="Bottom" Margin="10,0,0,0"/>
                         <TextBlock x:Name="ReadStatus" Text="notread" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B" VerticalAlignment="Bottom" Margin="5,0,0,0"/>
