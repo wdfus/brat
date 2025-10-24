@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+            xmlns:fly="clr-namespace:FlyleafLib.Controls.WPF;assembly=FlyleafLib.Controls.WPF"
              xmlns:local="clr-namespace:Brat"
              mc:Ignorable="d" 
              FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"
@@ -48,13 +49,14 @@
                        Stretch="UniformToFill"
                        Loaded="AvatarImage_Loaded"
                        SizeChanged="AvatarImage_SizeChanged"
-                       />  
-                
+                       Visibility="Collapsed"
+                       />
                 <StackPanel VerticalAlignment="Center">
-                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" Text="" MaxWidth="370" HorizontalAlignment="Left">
+                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="AttachmentText" TextWrapping="Wrap" MaxWidth="370" HorizontalAlignment="Left" Visibility="Collapsed">
                         <Hyperlink x:Name="HyperLinkMessage" RequestNavigate="HyperLinkMessage_RequestNavigate">
-                            Открыть файл
                         </Hyperlink>
+                    </TextBlock>
+                    <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" MaxWidth="370" HorizontalAlignment="Left">
                     </TextBlock>
                     <StackPanel Orientation="Horizontal" x:Name="StackTimeStatus" Loaded="StackTimeStatus_Loaded" HorizontalAlignment="Right">
                         <TextBlock x:Name="MessageDate" Text="15:01" HorizontalAlignment="Right" FontSize="10" Foreground="#FF8B8B8B" VerticalAlignment="Bottom" Margin="10,0,0,0"/>

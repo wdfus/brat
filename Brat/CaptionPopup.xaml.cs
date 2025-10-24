@@ -42,8 +42,12 @@ namespace Brat
 
         }
 
-        public static string SaveFile(string OriginalFilePath, string baseDir)
+        public static string SaveFile(string OriginalFilePath, string baseDir, bool Video)
         {
+            string newFileName = null;
+            string folderPath = null;
+            string destPath = null;
+            string extension = null;
             try
             {
 
@@ -51,20 +55,34 @@ namespace Brat
                 string year = DateTime.Now.Year.ToString();
                 string month = DateTime.Now.Month.ToString("D2");
                 string day = DateTime.Now.Day.ToString("D2");
-                string folderPath = System.IO.Path.Combine(baseDir, year, month, day);
+                folderPath = System.IO.Path.Combine(baseDir, year, month, day);
 
                 Directory.CreateDirectory(folderPath);
                 Debug.WriteLine(folderPath);
 
                 // Имя файла с уникальным хвостом
-                string extension = System.IO.Path.GetExtension(OriginalFilePath);
+                extension = System.IO.Path.GetExtension(OriginalFilePath);
                 string fileName = System.IO.Path.GetFileName(OriginalFilePath);
-                string newFileName = $"{fileName}";
+                if (!Video)
+                {
+                    newFileName = $"{fileName}";
+                }
+                else
+                {
+                    newFileName = $"video_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{extension}";
+                }
 
-                string destPath = System.IO.Path.Combine(folderPath, newFileName);
+                    destPath = System.IO.Path.Combine(folderPath, newFileName);
 
                 File.Copy(OriginalFilePath, destPath, overwrite: false);
 
+                return destPath;
+            }
+            catch (System.IO.IOException)
+            {
+                newFileName = $"file_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{extension}";
+                destPath = System.IO.Path.Combine(folderPath, newFileName);
+                File.Copy(OriginalFilePath, destPath, overwrite: false);
                 return destPath;
             }
             catch (Exception ex)
@@ -73,6 +91,7 @@ namespace Brat
                 return null;
             }
         }
+
 
 
         public static async Task<string> SaveImageByDateAsync(BitmapImage image, string basePath, string fileName)
@@ -117,20 +136,28 @@ namespace Brat
 
             if (myWindow != null)
             {
-                string fileName = $"file_{DateTime.Now:yyyyMMdd_HHmmss}.{System.IO.Path.GetExtension(FilePath)}";
+                string fileName = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.{System.IO.Path.GetExtension(FilePath)}";
                 string basePath = System.IO.Path.GetFullPath("../../../attachments");
                 FileType fileType = GetFileType(FilePath);
                 switch (fileType)
                 {
                     case FileType.Document:
                         Debug.WriteLine("eruiov");
-                        string path = SaveFile(FilePath, basePath);
+                        string path = SaveFile(FilePath, basePath, false);
                         await myWindow.SendMessageFuck(path, CaptionTextBox);
                         break;
                     case FileType.Image:
                         ImageBit = new BitmapImage(new Uri(FilePath));
                         string path2 = await SaveImageByDateAsync(ImageBit, basePath, fileName);
                         await myWindow.SendMessageFuck(path2, CaptionTextBox);
+                        break;
+                    case FileType.Video:
+                        string path3 = SaveFile(FilePath, basePath, true);
+                        await myWindow.SendMessageFuck(path3, CaptionTextBox);
+                        break;
+                    case FileType.Audio:
+                        string path4 = SaveFile(FilePath, basePath, false);
+                        await myWindow.SendMessageFuck(path4, CaptionTextBox);
                         break;
                 }
 

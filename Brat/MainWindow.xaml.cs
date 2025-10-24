@@ -293,6 +293,7 @@ namespace Brat
 
                 if (!LoadMore)
                 {
+                    ChatField.Children.Clear();
                     var headerName = await context.Users
                     .Where(u => u.Id == SelectedToUserId)
                     .Select(u => new { u.FirstName, u.SecondName })
@@ -309,7 +310,7 @@ namespace Brat
                     .Skip(SkipCount)
                     .Take(20)
                     .ToListAsync();
-                    ChatField.Children.Clear();
+
                     LoadedMessagesCount = 0;
                     var First = messages.First();
                     foreach (var chat in messages.AsEnumerable().Reverse())
@@ -786,7 +787,7 @@ namespace Brat
             var dialog = new OpenFileDialog
             {
                 Title = "Выберите файл",
-                Filter = "Изображения|*.jpg;*.jpeg;*.png;*.gif|Видео|*.mp4;*.avi;*.mov|Все файлы|*.*",
+                Filter = "Все файлы|*.*",
                 Multiselect = false
             };
 

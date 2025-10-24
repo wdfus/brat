@@ -1,9 +1,12 @@
 ﻿using Brat.Models;
+using FlyleafLib;
+using FlyleafLib.MediaPlayer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -15,6 +18,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Unosquare.FFME;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Brat
@@ -26,6 +30,7 @@ namespace Brat
     {
         public string StatusRead;
         public int FromUserId;
+        private Player _player;
         public MessageCloud()
         {
             InitializeComponent();
@@ -36,6 +41,7 @@ namespace Brat
             Debug.WriteLine($" пенис : {FilePath}");
             this.MessageId.Tag = MessageId;
             this.FromUserId = FromUserId;
+            CaptionPopup.FileType extension = CaptionPopup.GetFileType(FilePath);
             if (DateTime.TryParse(dateTime, out DateTime time))
             {
                 MessageDate.Text = time.ToString("HH:mm");
@@ -60,12 +66,21 @@ namespace Brat
             {
                 try
                 {
-                    Capture.Visibility = Visibility.Visible;
-                    Debug.WriteLine($" пенис 2: {FilePath}");
-                    Capture.Source = new BitmapImage(new Uri(FilePath));
-                    Bubble.Padding = new Thickness(0);
-                    StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
-                    messageText.Margin = new Thickness(10, 10, 0, 0);
+                    if (extension == CaptionPopup.FileType.Image)
+                    {
+                        Capture.Visibility = Visibility.Visible;
+                        Capture.Source = new BitmapImage(new Uri(FilePath));
+                        Bubble.Padding = new Thickness(0);
+                        StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
+                        messageText.Margin = new Thickness(10, 10, 0, 0);
+                    }
+                    if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
+                    {
+                        AttachmentText.Visibility = Visibility.Visible;
+                        HyperLinkMessage.NavigateUri = new Uri(FilePath);
+                        HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(FilePath));
+                        messageText.Text = text;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -75,6 +90,10 @@ namespace Brat
                 }
             }
         }
+
+      
+
+
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -157,6 +176,30 @@ namespace Brat
             }
 
             e.Handled = true;
+        }
+
+        private void VideoElement_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            //if (sender is MediaElement media)
+            //{
+            //    // Получаем реальные размеры видео
+            //    double videoWidth = media.NaturalVideoWidth;
+            //    double videoHeight = media.NaturalVideoHeight;
+
+            //    if (videoWidth > 0 && videoHeight > 0)
+            //    {
+            //        // Расчёт пропорций
+            //        double aspect = videoWidth / videoHeight;
+            //        double maxWidth = 10; // ограничение под размер "пузыря"
+            //        double newHeight = maxWidth / aspect;
+
+            //        // Присваиваем
+            //        media.Width = maxWidth;
+            //        media.Height = newHeight;
+
+            //        Debug.WriteLine($"Video scaled: {videoWidth}x{videoHeight} → {maxWidth}x{newHeight}");
+            //    }
+            //}
         }
     }
 }
