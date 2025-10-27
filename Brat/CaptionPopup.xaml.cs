@@ -136,19 +136,19 @@ namespace Brat
 
             if (myWindow != null)
             {
-                string fileName = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.{System.IO.Path.GetExtension(FilePath)}";
-                string basePath = System.IO.Path.GetFullPath("../../../attachments");
+
+                string basePath = "attachments";
                 FileType fileType = GetFileType(FilePath);
                 switch (fileType)
                 {
                     case FileType.Document:
-                        Debug.WriteLine("eruiov");
                         string path = SaveFile(FilePath, basePath, false);
                         await myWindow.SendMessageFuck(path, CaptionTextBox);
                         break;
                     case FileType.Image:
+                        string PhotoName = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.{System.IO.Path.GetExtension(FilePath)}";
                         ImageBit = new BitmapImage(new Uri(FilePath));
-                        string path2 = await SaveImageByDateAsync(ImageBit, basePath, fileName);
+                        string path2 = await SaveImageByDateAsync(ImageBit, basePath, PhotoName);
                         await myWindow.SendMessageFuck(path2, CaptionTextBox);
                         break;
                     case FileType.Video:

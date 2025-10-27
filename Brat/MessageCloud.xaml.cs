@@ -4,6 +4,7 @@ using FlyleafLib.MediaPlayer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -20,6 +21,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Unosquare.FFME;
 using static System.Net.Mime.MediaTypeNames;
+using Path = System.IO.Path;
+using Point = System.Windows.Point;
 
 namespace Brat
 {
@@ -66,10 +69,16 @@ namespace Brat
             {
                 try
                 {
+                    string relativePath = FilePath;
+                    string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
+                    string fullPath = Path.GetFullPath(Path.Combine(basePath, relativePath));
                     if (extension == CaptionPopup.FileType.Image)
                     {
+                       
                         Capture.Visibility = Visibility.Visible;
-                        Capture.Source = new BitmapImage(new Uri(FilePath));
+
+                        Debug.WriteLine(fullPath);
+                        Capture.Source = new BitmapImage(new Uri(fullPath));
                         Bubble.Padding = new Thickness(0);
                         StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
                         messageText.Margin = new Thickness(10, 10, 0, 0);
@@ -77,16 +86,15 @@ namespace Brat
                     if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
                     {
                         AttachmentText.Visibility = Visibility.Visible;
-                        HyperLinkMessage.NavigateUri = new Uri(FilePath);
-                        HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(FilePath));
+
+                        HyperLinkMessage.NavigateUri = new Uri(fullPath, UriKind.Absolute);
+                        HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(fullPath));
                         messageText.Text = text;
                     }
                 }
                 catch (Exception ex)
                 {
-                    HyperLinkMessage.NavigateUri = new Uri(FilePath);
-                    HyperLinkMessage.Inlines.Clear();
-                    HyperLinkMessage.Inlines.Add("Открыть файл");
+                    Debug.WriteLine("иди в пизду блять");
                 }
             }
         }

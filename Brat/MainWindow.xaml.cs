@@ -117,7 +117,7 @@ namespace Brat
         public MainWindow()
         {
             InitializeComponent();
-
+                
             _wsClient = new WebSocketClient();
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
@@ -285,8 +285,8 @@ namespace Brat
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
             chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
 
-            try
-            {
+/*            try
+            {*/
                 using var context = new BratBaseContext();
 
                 int SkipCount = LoadMore ? LoadedMessagesCount : 0;
@@ -418,11 +418,11 @@ namespace Brat
                 {
                     chatScroll.ScrollToEnd();
                 }
-            }
+/*            }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            }
+            }*/
         }
 
 
