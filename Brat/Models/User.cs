@@ -27,4 +27,6 @@ public partial class User
     public virtual ICollection<Message> MessageFromUsers { get; set; } = new List<Message>();
 
     public virtual ICollection<Message> MessageUsers { get; set; } = new List<Message>();
+    public virtual ICollection<FileAsset> Files { get; set; } = new List<FileAsset>();
+
 }

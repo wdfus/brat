@@ -15,6 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static System.Net.Mime.MediaTypeNames;
+using Path = System.IO.Path;
 
 namespace Brat
 {
@@ -48,6 +49,7 @@ namespace Brat
             string folderPath = null;
             string destPath = null;
             string extension = null;
+            string fileName = null;
             try
             {
 
@@ -62,7 +64,7 @@ namespace Brat
 
                 // Имя файла с уникальным хвостом
                 extension = System.IO.Path.GetExtension(OriginalFilePath);
-                string fileName = System.IO.Path.GetFileName(OriginalFilePath);
+                fileName = System.IO.Path.GetFileName(OriginalFilePath);
                 if (!Video)
                 {
                     newFileName = $"{fileName}";
@@ -78,9 +80,10 @@ namespace Brat
 
                 return destPath;
             }
-            catch (System.IO.IOException)
+            catch (System.IO.IOException ex)
             {
-                newFileName = $"file_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid():N}{extension}";
+                MessageBox.Show(ex.Message);
+                newFileName = $"{fileName}_{Date}{extension}";
                 destPath = System.IO.Path.Combine(folderPath, newFileName);
                 File.Copy(OriginalFilePath, destPath, overwrite: false);
                 return destPath;
@@ -104,7 +107,7 @@ namespace Brat
                 string day = DateTime.Now.Day.ToString("D2");
 
                 string directoryPath = System.IO.Path.Combine(basePath, year, month, day);
-
+                Debug.WriteLine($"ДИРЕКТОРИ ПАС: {directoryPath}");
                 // Создаём папки, если их нет
                 Directory.CreateDirectory(directoryPath);
 
@@ -118,7 +121,7 @@ namespace Brat
                     encoder.Frames.Add(BitmapFrame.Create(image));
                     encoder.Save(fileStream);
                 }
-
+                Debug.WriteLine($"Изображение сохранено по пути: {filePath}");
                 return filePath;
             }
             catch (Exception ex)
@@ -136,9 +139,12 @@ namespace Brat
 
             if (myWindow != null)
             {
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
 
-                string basePath = "attachments";
+                // поднимаемся на 3 папки вверх: bin → Debug → net8.0 → Brat
+                string basePath = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\attachments"));
                 FileType fileType = GetFileType(FilePath);
+                Debug.WriteLine(fileType);
                 switch (fileType)
                 {
                     case FileType.Document:

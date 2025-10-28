@@ -39,12 +39,11 @@ namespace Brat
             InitializeComponent();
 
         }
-        public MessageCloud(string dateTime, string text, string MessageType, int MessageId, int CurrentId, int FromUserId, string StatusRead = "", string FilePath = "") : this()
+        public MessageCloud(string dateTime, string text, string MessageType, int MessageId, int CurrentId, int FromUserId, string StatusRead = "", string FilePath = "", List<string> files = null) : this()
         {
-            Debug.WriteLine($" пенис : {FilePath}");
             this.MessageId.Tag = MessageId;
             this.FromUserId = FromUserId;
-            CaptionPopup.FileType extension = CaptionPopup.GetFileType(FilePath);
+
             if (DateTime.TryParse(dateTime, out DateTime time))
             {
                 MessageDate.Text = time.ToString("HH:mm");
@@ -65,52 +64,84 @@ namespace Brat
                 this.Tag = StatusRead;
                 StackBubble.Children.Remove(ReadStatus);
             }
-            if (!string.IsNullOrEmpty(FilePath))
+
+            try
             {
-                try
+                CaptionPopup.FileType extension = CaptionPopup.FileType.Image;
+                string relativePath = "";
+                if (files != null)
                 {
-                    string relativePath = FilePath;
-                    string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
-                    string fullPath = Path.GetFullPath(Path.Combine(basePath, relativePath));
-                    if (extension == CaptionPopup.FileType.Image)
-                    {
-                       
-                        Capture.Visibility = Visibility.Visible;
-
-                        Debug.WriteLine(fullPath);
-                        Capture.Source = new BitmapImage(new Uri(fullPath));
-                        Bubble.Padding = new Thickness(0);
-                        StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
-                        messageText.Margin = new Thickness(10, 10, 0, 0);
-                    }
-                    if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
-                    {
-                        AttachmentText.Visibility = Visibility.Visible;
-
-                        HyperLinkMessage.NavigateUri = new Uri(fullPath, UriKind.Absolute);
-                        HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(fullPath));
-                        messageText.Text = text;
-                    }
+                    extension = CaptionPopup.GetFileType(files[0]);
+                    relativePath = files[0];
                 }
-                catch (Exception ex)
+                else
                 {
-                    Debug.WriteLine("иди в пизду блять");
+                    extension = CaptionPopup.GetFileType(FilePath);
+                    relativePath = FilePath;
+                }
+
+                string baseDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
+                string fullPath = Path.Combine(baseDir, relativePath);
+                Debug.WriteLine(baseDir);
+                Debug.WriteLine(fullPath);
+                if (extension == CaptionPopup.FileType.Image)
+                {
+
+                    Capture.Visibility = Visibility.Visible;
+                    Capture.Source = new BitmapImage(new Uri(fullPath));
+                    Bubble.Padding = new Thickness(0);
+                    StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
+                    messageText.Margin = new Thickness(10, 10, 0, 0);
+                }
+                if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
+                {
+                    AttachmentText.Visibility = Visibility.Visible;
+
+                    HyperLinkMessage.NavigateUri = new Uri(fullPath, UriKind.Absolute);
+                    HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(fullPath));
+                    messageText.Text = text;
                 }
             }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"иди в пизду блять");
+            }
         }
+        
 
       
 
 
 
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        private async void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             DeleteRequested?.Invoke(this, this);
             using (var context = new BratBaseContext())
             {
-                var DeletingMessage = context.Messages.Where(m => m.MessageId == (int)this.MessageId.Tag).FirstOrDefault();
-                context.Messages.Remove(DeletingMessage);
-                context.SaveChanges();
+                try
+                {
+                    var DeletingMessage = context.Messages.Where(m => m.MessageId == (int)MessageId.Tag).FirstOrDefault();
+                    var Attachment = context.MessageAttachments.Where(m => m.MessageId == (int)MessageId.Tag).FirstOrDefault();
+
+                    if (Attachment != null)
+                    {
+                        var FileAsset = context.FileAssets.Where(m => m.Id == Attachment.FileId).FirstOrDefault();
+                        context.FileAssets.Remove(FileAsset);
+                        context.MessageAttachments.Remove(Attachment);
+                        context.Messages.Remove(DeletingMessage);
+                        Debug.WriteLine($"ПУТЬ К ФАЙЛУ: {FileAsset.File}");
+                        await context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        context.Messages.Remove(DeletingMessage);
+                        await context.SaveChangesAsync();
+                    }
+                }
+                catch(Exception ex)
+                {
+                    Debug.WriteLine(ex.Message.ToString());
+                }
             }
         }
 

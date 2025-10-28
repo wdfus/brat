@@ -21,9 +21,11 @@ public partial class BratBaseContext : DbContext
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<FileAsset> FileAssets { get; set; }
+    public virtual DbSet<MessageAttachment> MessageAttachments{ get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseMySql($"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase2;user=mysqladmin;password=mysqladmin", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.30-mysql"));
+        => optionsBuilder.UseMySql($"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase;user=mysqladmin;password=mysqladmin", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.30-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -115,6 +117,58 @@ public partial class BratBaseContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("username");
         });
+
+        modelBuilder.Entity<FileAsset>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("www_fileasset");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.File)
+                .HasMaxLength(100)
+                .HasColumnName("file");
+            entity.Property(e => e.Kind)
+                .HasMaxLength(10)
+                .HasColumnName("kind");
+            entity.Property(e => e.Mime)
+                .HasMaxLength(100)
+                .HasColumnName("mime");
+            entity.Property(e => e.Size)
+                .HasColumnType("bigint unsigned")
+                .HasColumnName("size");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnName("created_at");
+            entity.Property(e => e.UploaderId)
+                .HasColumnName("uploader_id");
+
+            // Навигация на User
+            entity.HasOne(d => d.Uploader)
+                .WithMany(p => p.Files)
+                .HasForeignKey(d => d.UploaderId);
+        });
+
+        modelBuilder.Entity<MessageAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("www_messageattachment");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.FileId).HasColumnName("file_id");
+            entity.Property(e => e.MessageId).HasColumnName("message_id");
+
+            entity.HasOne(d => d.File)
+                .WithMany(p => p.MessageFiles)
+                .HasForeignKey(d => d.FileId);
+
+            entity.HasOne(d => d.Message)
+                .WithMany(p => p.MessageFiles)
+                .HasForeignKey(d => d.MessageId);
+        });
+
+
 
         OnModelCreatingPartial(modelBuilder);
     }

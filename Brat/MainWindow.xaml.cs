@@ -26,6 +26,7 @@ using System.Windows.Threading;
 using Xceed.Wpf.AvalonDock.Layout;
 using Xceed.Wpf.Toolkit;
 using static System.Net.Mime.MediaTypeNames;
+using Path = System.IO.Path;
 
 namespace Brat
 {
@@ -117,7 +118,7 @@ namespace Brat
         public MainWindow()
         {
             InitializeComponent();
-                
+
             _wsClient = new WebSocketClient();
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
@@ -261,7 +262,7 @@ namespace Brat
 
         private async Task LoadMessages(int userId = -1, int chatId = -1, bool LoadMore = false)
         {
-
+            int SkipCount;
             if ((userId == -1 || chatId == -1) && !LoadMore)
             {
                 ChatField.Children.Clear();
@@ -285,34 +286,27 @@ namespace Brat
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
             chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
 
-/*            try
-            {*/
-                using var context = new BratBaseContext();
+            //try
+            //{
+            using var context = new BratBaseContext();
 
-                int SkipCount = LoadMore ? LoadedMessagesCount : 0;
+            {
+                SkipCount = LoadMore ? LoadedMessagesCount : 0;
 
                 if (!LoadMore)
                 {
                     ChatField.Children.Clear();
-                    var headerName = await context.Users
-                    .Where(u => u.Id == SelectedToUserId)
-                    .Select(u => new { u.FirstName, u.SecondName })
-                    .FirstOrDefaultAsync();
+                    // Для первой загрузки
 
-                    if (headerName != null)
-                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
-
-                    TopRow.Visibility = Visibility.Visible;
-                    FirstLoadedMessages = true;
                     var messages = await context.Messages
-                    .Where(x => x.ChatId == chatId)
-                    .OrderByDescending(x => x.MessageId)   // от старого к новому
-                    .Skip(SkipCount)
-                    .Take(20)
-                    .ToListAsync();
+                        .Where(x => x.ChatId == chatId)
+                        .OrderByDescending(x => x.MessageId)
+                        .Skip(SkipCount)
+                        .Take(20)
+                        .Include(m => m.MessageFiles)      // связи с файлами
+                            .ThenInclude(ma => ma.File)     // подключаем сам файл
+                        .ToListAsync();
 
-                    LoadedMessagesCount = 0;
-                    var First = messages.First();
                     foreach (var chat in messages.AsEnumerable().Reverse())
                     {
                         if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
@@ -328,6 +322,13 @@ namespace Brat
                             ChatField.Children.Add(dateLabel);
                             LastDate = chat.SentTime.Value.Date;
                         }
+
+                        // Формируем список путей файлов для MessageCloud
+                        List<string> files = chat.MessageFiles
+                            .Select(ma => ma.File.File)
+                            .Where(f => !string.IsNullOrEmpty(f))
+                            .ToList();
+
                         var bubble = new MessageCloud(
                             chat.SentTime?.ToString() ?? "",
                             chat.MessageText,
@@ -336,93 +337,100 @@ namespace Brat
                             Myid,
                             chat.FromUserId,
                             chat.Status,
-                            !string.IsNullOrEmpty(chat.CaptionPath) ? chat.CaptionPath: "");
+                            "",
+                            files
+                        // передаем список файлов
+                        );
+                        FirstLoadedMessages = true;
                         bubble.DeleteRequested += Message_DeleteRequested;
                         ChatField.Children.Add(bubble);
 
-                        if (chat == First)
-                        {
+                        if (chat == messages.First())
                             FirstDate = chat.SentTime.Value.Date;
-                        }
                     }
 
-                    LoadedMessagesCount += messages.Count;
-
                 }
+            }
 
 
 
-                if (LoadMore)
-                {
+            if (LoadMore)
+            {
+                double prevExtentHeight = chatScroll.ExtentHeight;
+                double prevOffset = chatScroll.VerticalOffset;
 
-                    double prevExtentHeight = chatScroll.ExtentHeight;
-                    double prevOffset = chatScroll.VerticalOffset;
-                    var messages = await context.Messages
+                var messages = await context.Messages
                     .Where(x => x.ChatId == chatId)
                     .OrderByDescending(x => x.MessageId)
                     .Skip(SkipCount)
                     .Take(20)
+                    .Include(m => m.MessageFiles)
+                        .ThenInclude(ma => ma.File)
                     .ToListAsync();
-                    foreach (var chat in messages)
-                    {
-                        var bubble = new MessageCloud(
-                            chat.SentTime?.ToString() ?? "",
-                            chat.MessageText,
-                            userId == chat.FromUserId ? "reciever" : "sender",
-                            chat.MessageId,
-                            Myid,
-                            chat.FromUserId,
-                            chat.Status,
-                            !string.IsNullOrEmpty(chat.CaptionPath) ? chat.CaptionPath : "");
-                        bubble.DeleteRequested += Message_DeleteRequested;
 
-                        if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
-                        {
-                            var dateLabel = new TextBlock
-                            {
-                                Text = GetDateLabel((DateTime)chat.SentTime),
-                                HorizontalAlignment = HorizontalAlignment.Center,
-                                Foreground = Brushes.Gray,
-                                Margin = new Thickness(0, 8, 0, 8),
-                                FontWeight = FontWeights.Bold
-                            };
-                            if (LastDate != FirstDate)
-                            {
-                                ChatField.Children.Insert(0, bubble);
-                            }
-                            else
-                            {
-                                ChatField.Children.Insert(1, bubble);
-                            }
-                            if (LastDate != FirstDate) ChatField.Children.Insert(0, dateLabel);
-                            LastDate = chat.SentTime.Value.Date;
-
-                        }
-                        else
-                        {
-                            ChatField.Children.Insert(1, bubble);
-                        }
-
-                    }
-                    LoadedMessagesCount += messages.Count;
-                    chatScroll.UpdateLayout();
-                    double newExtentHeight = chatScroll.ExtentHeight;
-                    chatScroll.ScrollToVerticalOffset((newExtentHeight - prevExtentHeight));
-                }
-
-
-
-
-                // Скролим вниз, если это первая загрузка
-                if (!LoadMore)
+                foreach (var chat in messages.AsEnumerable().Reverse())
                 {
-                    chatScroll.ScrollToEnd();
+                    // Получаем путь к файлу, если есть
+                    string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
+
+                    var bubble = new MessageCloud(
+                        chat.SentTime?.ToString() ?? "",
+                        chat.MessageText,
+                        userId == chat.FromUserId ? "reciever" : "sender",
+                        chat.MessageId,
+                        Myid,
+                        chat.FromUserId,
+                        chat.Status,
+                        filePath
+                    );
+
+                    bubble.DeleteRequested += Message_DeleteRequested;
+
+                    // Добавляем метку даты, если она меняется
+                    if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
+                    {
+                        var dateLabel = new TextBlock
+                        {
+                            Text = GetDateLabel((DateTime)chat.SentTime),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Foreground = Brushes.Gray,
+                            Margin = new Thickness(0, 8, 0, 8),
+                            FontWeight = FontWeights.Bold
+                        };
+
+                        ChatField.Children.Insert(0, dateLabel);
+                        ChatField.Children.Insert(1, bubble);
+
+                        LastDate = chat.SentTime.Value.Date;
+                    }
+                    else
+                    {
+                        ChatField.Children.Insert(1, bubble);
+                    }
                 }
-/*            }
-            catch (Exception ex)
+
+                LoadedMessagesCount += messages.Count;
+
+                chatScroll.UpdateLayout();
+                double newExtentHeight = chatScroll.ExtentHeight;
+
+                // Сохраняем смещение скролла
+                chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+            }
+
+
+
+
+            // Скролим вниз, если это первая загрузка
+            if (!LoadMore)
             {
-                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            }*/
+                chatScroll.ScrollToEnd();
+            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
+            //}
         }
 
 
@@ -491,87 +499,116 @@ namespace Brat
         }
 
 
-        public async Task SendMessageFuck(string FilePath="", WatermarkTextBox watermarkTextBox = null)
+        public async Task SendMessageFuck(string FilePath = "", WatermarkTextBox watermarkTextBox = null)
         {
-            List<char> ForbiddenChars = new List<char>
+            List<char> ForbiddenChars = new()
+    {
+        '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
+        '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
+        '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
+        '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
+        '\u007F'
+    };
+
+            // Если поле пустое и нет файла — ничего не отправляем
+            if (string.IsNullOrWhiteSpace(FilePath) &&
+                (watermarkTextBox == null || string.IsNullOrWhiteSpace(watermarkTextBox.Text)))
+                return;
+
+            await using var context = new BratBaseContext();
+
+            DateTime sentTime = DateTime.Now;
+            try
+            {
+                // создаём сообщение
+                var newMessage = new Message
                 {
-                    '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
-                    '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
-                    '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
-                    '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
-                    '\u007F'
+                    ChatId = SelectedChatId,
+                    FromUserId = SelectedFromUserId,
+                    UserId = SelectedToUserId,
+                    MessageText = watermarkTextBox?.Text ?? string.Empty,
+                    Status = "notread",
+                    SentTime = sentTime,
                 };
 
-            if (watermarkTextBox != null && string.IsNullOrWhiteSpace(watermarkTextBox.Text))
-            {
-                if (watermarkTextBox == mainTextBox)
-                {
-                    watermarkTextBox.Text = string.Empty;
-                    return;
-                }
-            }
+                await context.Messages.AddAsync(newMessage);
+                await context.SaveChangesAsync(); // сохраняем, чтобы получить MessageId
 
-            await using (var context = new BratBaseContext())
-            {
-                DateTime? SentTime = DateTime.Now;
-                try
+                // если есть файл — создаём FileAsset и MessageAttachment
+                if (!string.IsNullOrEmpty(FilePath))
                 {
-                    var newMessage = new Message
+                    string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
+                    string relativePath = Path.GetRelativePath(basePath, FilePath);
+
+                    var fileInfo = new FileInfo(FilePath);
+                    var fileAsset = new FileAsset
                     {
-                        ChatId = SelectedChatId,
-                        FromUserId = SelectedFromUserId,
-                        UserId = SelectedToUserId,
-                        MessageText = watermarkTextBox.Text,
-                        MessageType = string.IsNullOrEmpty(FilePath) ? "message" : "caption",
-                        CaptionPath = string.IsNullOrEmpty(FilePath) ? "" : FilePath,
-                        Status = "notread",
-                        SentTime = SentTime,
+                        File = relativePath.Replace("\\", "/"), // относительный путь
+                        Kind = "photo",
+                        Mime = "image/png",
+                        Size = (ulong)fileInfo.Length,
+                        CreatedAt = sentTime
                     };
 
-                    await context.Messages.AddAsync(newMessage);
+                    await context.FileAssets.AddAsync(fileAsset);
                     await context.SaveChangesAsync();
 
-                    // после сохранения можно получить ID нового сообщения
-                    var RecentlySentMessage = await context.Messages
-                        .Where(x => x.ChatId == SelectedChatId)
-                        .OrderByDescending(x => x.MessageId)
-                        .FirstOrDefaultAsync();
-
-                    if (RecentlySentMessage != null)
+                    var attachment = new MessageAttachment
                     {
-                        if (SelectedFromUserId == RecentlySentMessage.FromUserId)
-                        {
-                            var sender = new MessageCloud(RecentlySentMessage.SentTime.ToString(), RecentlySentMessage.MessageText, "sender", RecentlySentMessage.MessageId, Myid, RecentlySentMessage.UserId, "notread", string.IsNullOrEmpty(FilePath) ? "" : FilePath);
-                            sender.DeleteRequested += Message_DeleteRequested;
-                            if (LastDate == null || LastDate.Value.Date != SentTime.Value.Date)
-                            {
-                                var dateLabel = new TextBlock
-                                {
-                                    Text = GetDateLabel((DateTime)SentTime),
-                                    HorizontalAlignment = HorizontalAlignment.Center,
-                                    Foreground = Brushes.Gray,
-                                    Margin = new Thickness(0, 8, 0, 8),
-                                    FontWeight = FontWeights.Bold
-                                };
-                                ChatField.Children.Add(dateLabel);
-                                LastDate = SentTime.Value.Date;
-                            }
+                        MessageId = newMessage.MessageId,
+                        FileId = (int)fileAsset.Id,
+                        CreatedAt = sentTime
+                    };
 
-                            ChatField.Children.Add(sender);
-                            ChatField.UpdateLayout();
-                            UpdateLastText(watermarkTextBox.Text, SelectedToUserId);
-                            watermarkTextBox.Text = string.Empty;
-                            chatScroll.ScrollToEnd();
-                            Debug.WriteLine(LastDate);
-                        }
-                    }
+                    await context.MessageAttachments.AddAsync(attachment);
+                    await context.SaveChangesAsync();
                 }
-                catch
+
+
+                // создаём визуальное сообщение
+                var isSender = SelectedFromUserId == newMessage.FromUserId;
+                var bubble = new MessageCloud(
+                    newMessage.SentTime?.ToString() ?? "",
+                    newMessage.MessageText,
+                    isSender ? "sender" : "reciever",
+                    newMessage.MessageId,
+                    Myid,
+                    newMessage.UserId,
+                    newMessage.Status,
+                    FilePath ?? ""
+                );
+
+                bubble.DeleteRequested += Message_DeleteRequested;
+
+                // если дата другая — вставляем метку даты
+                if (LastDate == null || LastDate.Value.Date != sentTime.Date)
                 {
-                    System.Windows.MessageBox.Show("Что-то случилось");
+                    var dateLabel = new TextBlock
+                    {
+                        Text = GetDateLabel(sentTime),
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        Foreground = Brushes.Gray,
+                        Margin = new Thickness(0, 8, 0, 8),
+                        FontWeight = FontWeights.Bold
+                    };
+                    ChatField.Children.Add(dateLabel);
+                    LastDate = sentTime.Date;
                 }
+
+                ChatField.Children.Add(bubble);
+                ChatField.UpdateLayout();
+                UpdateLastText(watermarkTextBox?.Text ?? "", SelectedToUserId);
+                if (watermarkTextBox != null) watermarkTextBox.Text = string.Empty;
+                chatScroll.ScrollToEnd();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Ошибка при отправке: {ex.Message}");
             }
         }
+
+
+
         private async void mainTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Shift && borderEnterField.Visibility == Visibility.Visible)
