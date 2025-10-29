@@ -26,7 +26,7 @@ public partial class BratBaseContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseMySql($"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase;user=mysqladmin;password=mysqladmin", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.30-mysql"));
-
+   /* => optionsBuilder.UseMySql($"server=31.31.197.33;port=3310;database=u3309507_BratBase;user=u3309507_admin;password=Qwerty2594!", Microsoft.EntityFrameworkCore.ServerVersion.Parse("5.7-mysql"));*/
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder

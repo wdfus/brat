@@ -82,8 +82,7 @@ namespace Brat
             }
             catch (System.IO.IOException ex)
             {
-                MessageBox.Show(ex.Message);
-                newFileName = $"{fileName}_{Date}{extension}";
+                newFileName = $"{fileName}_{DateTime.Now.Second}{extension}";
                 destPath = System.IO.Path.Combine(folderPath, newFileName);
                 File.Copy(OriginalFilePath, destPath, overwrite: false);
                 return destPath;

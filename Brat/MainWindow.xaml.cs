@@ -42,7 +42,7 @@ namespace Brat
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
         private int _lastLineCount = 1;
-        public static int Myid = 1;
+        public static int Myid = 2;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int LoadedMessagesCount = 0;
@@ -286,29 +286,106 @@ namespace Brat
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
             chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
 
-            //try
-            //{
-            using var context = new BratBaseContext();
-
+            try
             {
-                SkipCount = LoadMore ? LoadedMessagesCount : 0;
-
-                if (!LoadMore)
+                using var context = new BratBaseContext();
                 {
-                    ChatField.Children.Clear();
-                    // Для первой загрузки
+                    SkipCount = LoadMore ? LoadedMessagesCount : 0;
+
+                    if (!LoadMore)
+                    {
+                        ChatField.Children.Clear();
+                        // Для первой загрузки
+
+                        var messages = await context.Messages
+                            .Where(x => x.ChatId == chatId)
+                            .OrderByDescending(x => x.MessageId)
+                            .Skip(SkipCount)
+                            .Take(20)
+                            .Include(m => m.MessageFiles)      // связи с файлами
+                                .ThenInclude(ma => ma.File)     // подключаем сам файл
+                            .ToListAsync();
+
+                        foreach (var chat in messages.AsEnumerable().Reverse())
+                        {
+                            if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
+                            {
+                                var dateLabel = new TextBlock
+                                {
+                                    Text = GetDateLabel((DateTime)chat.SentTime),
+                                    HorizontalAlignment = HorizontalAlignment.Center,
+                                    Foreground = Brushes.Gray,
+                                    Margin = new Thickness(0, 8, 0, 8),
+                                    FontWeight = FontWeights.Bold
+                                };
+                                ChatField.Children.Add(dateLabel);
+                                LastDate = chat.SentTime.Value.Date;
+                            }
+
+                            // Формируем список путей файлов для MessageCloud
+                            List<string> files = chat.MessageFiles
+                                .Select(ma => ma.File.File)
+                                .Where(f => !string.IsNullOrEmpty(f))
+                                .ToList();
+
+                            var bubble = new MessageCloud(
+                                chat.SentTime?.ToString() ?? "",
+                                chat.MessageText,
+                                userId == chat.FromUserId ? "reciever" : "sender",
+                                chat.MessageId,
+                                Myid,
+                                chat.FromUserId,
+                                chat.Status,
+                                "",
+                                files
+                            // передаем список файлов
+                            );
+                            FirstLoadedMessages = true;
+                            bubble.DeleteRequested += Message_DeleteRequested;
+                            ChatField.Children.Add(bubble);
+
+                            if (chat == messages.First())
+                                FirstDate = chat.SentTime.Value.Date;
+                        }
+
+                    }
+                }
+
+
+
+                if (LoadMore)
+                {
+                    double prevExtentHeight = chatScroll.ExtentHeight;
+                    double prevOffset = chatScroll.VerticalOffset;
 
                     var messages = await context.Messages
                         .Where(x => x.ChatId == chatId)
                         .OrderByDescending(x => x.MessageId)
                         .Skip(SkipCount)
                         .Take(20)
-                        .Include(m => m.MessageFiles)      // связи с файлами
-                            .ThenInclude(ma => ma.File)     // подключаем сам файл
+                        .Include(m => m.MessageFiles)
+                            .ThenInclude(ma => ma.File)
                         .ToListAsync();
 
                     foreach (var chat in messages.AsEnumerable().Reverse())
                     {
+                        // Получаем путь к файлу, если есть
+                        string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
+
+                        var bubble = new MessageCloud(
+                            chat.SentTime?.ToString() ?? "",
+                            chat.MessageText,
+                            userId == chat.FromUserId ? "reciever" : "sender",
+                            chat.MessageId,
+                            Myid,
+                            chat.FromUserId,
+                            chat.Status,
+                            filePath
+                        );
+
+                        bubble.DeleteRequested += Message_DeleteRequested;
+
+                        // Добавляем метку даты, если она меняется
                         if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
                         {
                             var dateLabel = new TextBlock
@@ -319,118 +396,40 @@ namespace Brat
                                 Margin = new Thickness(0, 8, 0, 8),
                                 FontWeight = FontWeights.Bold
                             };
-                            ChatField.Children.Add(dateLabel);
+
+                            ChatField.Children.Insert(0, dateLabel);
+                            ChatField.Children.Insert(1, bubble);
+
                             LastDate = chat.SentTime.Value.Date;
                         }
-
-                        // Формируем список путей файлов для MessageCloud
-                        List<string> files = chat.MessageFiles
-                            .Select(ma => ma.File.File)
-                            .Where(f => !string.IsNullOrEmpty(f))
-                            .ToList();
-
-                        var bubble = new MessageCloud(
-                            chat.SentTime?.ToString() ?? "",
-                            chat.MessageText,
-                            userId == chat.FromUserId ? "reciever" : "sender",
-                            chat.MessageId,
-                            Myid,
-                            chat.FromUserId,
-                            chat.Status,
-                            "",
-                            files
-                        // передаем список файлов
-                        );
-                        FirstLoadedMessages = true;
-                        bubble.DeleteRequested += Message_DeleteRequested;
-                        ChatField.Children.Add(bubble);
-
-                        if (chat == messages.First())
-                            FirstDate = chat.SentTime.Value.Date;
-                    }
-
-                }
-            }
-
-
-
-            if (LoadMore)
-            {
-                double prevExtentHeight = chatScroll.ExtentHeight;
-                double prevOffset = chatScroll.VerticalOffset;
-
-                var messages = await context.Messages
-                    .Where(x => x.ChatId == chatId)
-                    .OrderByDescending(x => x.MessageId)
-                    .Skip(SkipCount)
-                    .Take(20)
-                    .Include(m => m.MessageFiles)
-                        .ThenInclude(ma => ma.File)
-                    .ToListAsync();
-
-                foreach (var chat in messages.AsEnumerable().Reverse())
-                {
-                    // Получаем путь к файлу, если есть
-                    string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
-
-                    var bubble = new MessageCloud(
-                        chat.SentTime?.ToString() ?? "",
-                        chat.MessageText,
-                        userId == chat.FromUserId ? "reciever" : "sender",
-                        chat.MessageId,
-                        Myid,
-                        chat.FromUserId,
-                        chat.Status,
-                        filePath
-                    );
-
-                    bubble.DeleteRequested += Message_DeleteRequested;
-
-                    // Добавляем метку даты, если она меняется
-                    if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
-                    {
-                        var dateLabel = new TextBlock
+                        else
                         {
-                            Text = GetDateLabel((DateTime)chat.SentTime),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Foreground = Brushes.Gray,
-                            Margin = new Thickness(0, 8, 0, 8),
-                            FontWeight = FontWeights.Bold
-                        };
-
-                        ChatField.Children.Insert(0, dateLabel);
-                        ChatField.Children.Insert(1, bubble);
-
-                        LastDate = chat.SentTime.Value.Date;
+                            ChatField.Children.Insert(1, bubble);
+                        }
                     }
-                    else
-                    {
-                        ChatField.Children.Insert(1, bubble);
-                    }
+
+                    LoadedMessagesCount += messages.Count;
+
+                    chatScroll.UpdateLayout();
+                    double newExtentHeight = chatScroll.ExtentHeight;
+
+                    // Сохраняем смещение скролла
+                    chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
                 }
 
-                LoadedMessagesCount += messages.Count;
 
-                chatScroll.UpdateLayout();
-                double newExtentHeight = chatScroll.ExtentHeight;
 
-                // Сохраняем смещение скролла
-                chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+
+                // Скролим вниз, если это первая загрузка
+                if (!LoadMore)
+                {
+                    chatScroll.ScrollToEnd();
+                }
             }
-
-
-
-
-            // Скролим вниз, если это первая загрузка
-            if (!LoadMore)
+            catch (Exception ex)
             {
-                chatScroll.ScrollToEnd();
+                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
             }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            //}
         }
 
 
