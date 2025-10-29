@@ -33,7 +33,6 @@ namespace Brat
     {
         public string StatusRead;
         public int FromUserId;
-        private Player _player;
         public MessageCloud()
         {
             InitializeComponent();
@@ -67,7 +66,7 @@ namespace Brat
 
             try
             {
-                CaptionPopup.FileType extension = CaptionPopup.FileType.Image;
+                CaptionPopup.FileType extension; ;
                 string relativePath = "";
                 if (files != null)
                 {
@@ -79,11 +78,8 @@ namespace Brat
                     extension = CaptionPopup.GetFileType(FilePath);
                     relativePath = FilePath;
                 }
-
                 string baseDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
                 string fullPath = Path.Combine(baseDir, relativePath);
-                Debug.WriteLine(baseDir);
-                Debug.WriteLine(fullPath);
                 if (extension == CaptionPopup.FileType.Image)
                 {
 
@@ -96,20 +92,19 @@ namespace Brat
                 if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
                 {
                     AttachmentText.Visibility = Visibility.Visible;
-
                     HyperLinkMessage.NavigateUri = new Uri(fullPath, UriKind.Absolute);
                     HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(fullPath));
                     messageText.Text = text;
                 }
+
             }
-            catch (Exception ex)
+            catch (System.ArgumentOutOfRangeException ex)
             {
-                Debug.WriteLine($"иди в пизду блять");
             }
         }
-        
 
-      
+
+
 
 
 
@@ -138,7 +133,7 @@ namespace Brat
                         await context.SaveChangesAsync();
                     }
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Debug.WriteLine(ex.Message.ToString());
                 }

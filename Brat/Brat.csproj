@@ -9,7 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="attachments\2025\10\24\photo_20251024_185218..jpg" />
     <None Remove="Fonts\SF-Pro-Rounded-Black.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Bold.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Heavy.otf" />
@@ -37,9 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="attachments\2025\10\24\photo_20251024_185218..jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
     <Resource Include="Fonts\MenuIcon.apng">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -78,6 +74,10 @@
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="attachments\2025\" />
   </ItemGroup>
 
 

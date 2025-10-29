@@ -291,7 +291,6 @@ namespace Brat
                 using var context = new BratBaseContext();
                 {
                     SkipCount = LoadMore ? LoadedMessagesCount : 0;
-                    Debug.WriteLine($"Зарузка...{SkipCount}");
                     if (!LoadMore)
                     {
                         ChatField.Children.Clear();
