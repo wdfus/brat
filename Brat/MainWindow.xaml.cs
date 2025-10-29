@@ -291,10 +291,20 @@ namespace Brat
                 using var context = new BratBaseContext();
                 {
                     SkipCount = LoadMore ? LoadedMessagesCount : 0;
-
+                    Debug.WriteLine($"Зарузка...{SkipCount}");
                     if (!LoadMore)
                     {
                         ChatField.Children.Clear();
+                        var headerName = await context.Users
+                    .Where(u => u.Id == SelectedToUserId)
+                    .Select(u => new { u.FirstName, u.SecondName })
+                    .FirstOrDefaultAsync();
+
+                        if (headerName != null)
+                            SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
+
+                        TopRow.Visibility = Visibility.Visible;
+                        FirstLoadedMessages = true;
                         // Для первой загрузки
 
                         var messages = await context.Messages
@@ -305,7 +315,7 @@ namespace Brat
                             .Include(m => m.MessageFiles)      // связи с файлами
                                 .ThenInclude(ma => ma.File)     // подключаем сам файл
                             .ToListAsync();
-
+                        LoadedMessagesCount = 0;
                         foreach (var chat in messages.AsEnumerable().Reverse())
                         {
                             if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
@@ -340,14 +350,15 @@ namespace Brat
                                 files
                             // передаем список файлов
                             );
-                            FirstLoadedMessages = true;
                             bubble.DeleteRequested += Message_DeleteRequested;
                             ChatField.Children.Add(bubble);
 
                             if (chat == messages.First())
                                 FirstDate = chat.SentTime.Value.Date;
-                        }
+                           
 
+                        }
+                        LoadedMessagesCount += messages.Count;
                     }
                 }
 
@@ -367,8 +378,9 @@ namespace Brat
                             .ThenInclude(ma => ma.File)
                         .ToListAsync();
 
-                    foreach (var chat in messages.AsEnumerable().Reverse())
+                    foreach (var chat in messages)
                     {
+                        Debug.WriteLine(chat.MessageText);
                         // Получаем путь к файлу, если есть
                         string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
 
@@ -397,9 +409,15 @@ namespace Brat
                                 FontWeight = FontWeights.Bold
                             };
 
-                            ChatField.Children.Insert(0, dateLabel);
-                            ChatField.Children.Insert(1, bubble);
-
+                            if (LastDate != FirstDate)
+                            {
+                                ChatField.Children.Insert(0, bubble);
+                            }
+                            else
+                            {
+                                ChatField.Children.Insert(1, bubble);
+                            }
+                            if (LastDate != FirstDate) ChatField.Children.Insert(0, dateLabel);
                             LastDate = chat.SentTime.Value.Date;
                         }
                         else
