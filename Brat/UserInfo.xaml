@@ -1,0 +1,17 @@
+﻿<Window x:Class="Brat.UserInfo"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        PreviewKeyDown="Window_PreviewKeyDown"
+    WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        SizeToContent="WidthAndHeight"
+        Topmost="True" 
+        FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded" KeyDown="Window_KeyDown"  >
+    <Grid x:Name="GridMain">
+        <ContentControl x:Name="ContentHolder"/>
+    </Grid>
+    
+</Window>

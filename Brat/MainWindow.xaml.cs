@@ -1,5 +1,6 @@
 ﻿using Brat;
 using Brat.Models;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
 using System;
@@ -36,13 +37,13 @@ namespace Brat
     /// 
     public partial class MainWindow : Window
     {
-        private PopupProfile popup;
+        private UserInfo popup;
         private UserRow SelectedUserRow;
         DateTime? LastDate = null;
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
         private int _lastLineCount = 1;
-        public static int Myid = 2;
+        public static int Myid = 1;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int LoadedMessagesCount = 0;
@@ -354,7 +355,7 @@ namespace Brat
 
                             if (chat == messages.First())
                                 FirstDate = chat.SentTime.Value.Date;
-                           
+
 
                         }
                         LoadedMessagesCount += messages.Count;
@@ -416,7 +417,11 @@ namespace Brat
                             {
                                 ChatField.Children.Insert(1, bubble);
                             }
-                            if (LastDate != FirstDate) ChatField.Children.Insert(0, dateLabel);
+                            if (LastDate != FirstDate)
+                            {
+                                ChatField.Children.Insert(0, dateLabel);
+                            }
+
                             LastDate = chat.SentTime.Value.Date;
                         }
                         else
@@ -556,13 +561,18 @@ namespace Brat
                     string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
                     string relativePath = Path.GetRelativePath(basePath, FilePath);
 
-                    var fileInfo = new FileInfo(FilePath);
+                    string fileType = CaptionPopup.GetFileType(FilePath).ToString();
+                    var provider = new FileExtensionContentTypeProvider();
+                    if (!provider.TryGetContentType("voice.ogg", out var mimeType))
+                    {
+                        mimeType = "application/octet-stream";
+                    }
                     var fileAsset = new FileAsset
                     {
                         File = relativePath.Replace("\\", "/"), // относительный путь
-                        Kind = "photo",
-                        Mime = "image/png",
-                        Size = (ulong)fileInfo.Length,
+                        Kind = fileType.ToLower(),
+                        Mime = mimeType,
+                        Size = (ulong)new FileInfo(FilePath).Length,
                         CreatedAt = sentTime
                     };
 
@@ -685,13 +695,32 @@ namespace Brat
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-        }
-
-        private void TextBlock_Click(object sender, RoutedEventArgs e)
-        {
-            if (SelectedUserRow != null && SelectedUserRow is UserRow userrow)
+            UserClass userClass = new UserClass();
+            using (var context = new BratBaseContext())
             {
-                popup = new PopupProfile(userrow.ThisUser);
+                var UserInfo = context.Users.Where(x => x.Id == Myid).FirstOrDefault();
+                if (UserInfo != null)
+                {
+                    userClass = new UserClass()
+                    {
+                        FirstName = UserInfo.FirstName,
+                        SecondName = UserInfo.SecondName,
+                        AboutSelf = UserInfo.AboutSelf,
+                        Birthday = UserInfo.Birthday.ToString(),
+                        PhoneNumber = UserInfo.PhoneNumber,
+                        Username = UserInfo.Username,
+                        ChatId = -1,
+                        FromUserId = -1,
+                        LastMessageStatus = "",
+                        LastMessageTime = "",
+                        LastText = "",
+                        Status = "",
+                        ToUserId = -1
+
+                    };
+                }
+
+                popup = new UserInfo(userClass);
                 popup.Owner = this;
                 popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
                 DimLayer.Visibility = Visibility.Visible;
@@ -735,10 +764,56 @@ namespace Brat
                     };
                 }
             }
+        }
 
+        private void TextBlock_Click(object sender, RoutedEventArgs e)
+        {
+            if (SelectedUserRow != null && SelectedUserRow is UserRow userrow)
+            {
+                popup = new UserInfo(userrow.ThisUser);
+                popup.Owner = this;
+                popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+                DimLayer.Visibility = Visibility.Visible;
+                var fadeIn = new DoubleAnimation(0, 0.3, TimeSpan.FromMilliseconds(200));
+                DimLayer.BeginAnimation(OpacityProperty, fadeIn);
+                popup.Opacity = 0;
+                popup.Loaded += (s, args) =>
+                {
+                    var popupFade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                    popup.BeginAnimation(Window.OpacityProperty, popupFade);
+                };
 
+                popup.Closed += (s, args) =>
+                {
+                    var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
+                    FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
+                    DimLayer.BeginAnimation(OpacityProperty, FadeOut);
+                    popup = null;
+                };
 
+                popup.Show();
 
+                if (popup != null)
+                {
+                    this.LocationChanged += (s, e) =>
+                    {
+                        if (popup != null)
+                        {
+                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                        }
+                    };
+
+                    this.SizeChanged += (s, e) =>
+                    {
+                        if (popup != null)
+                        {
+                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                        }
+                    };
+                }
+            }
         }
 
         private void DimLayer_MouseDown(object sender, MouseButtonEventArgs e)

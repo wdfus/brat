@@ -68,7 +68,7 @@ namespace Brat
             {
                 CaptionPopup.FileType extension; ;
                 string relativePath = "";
-                if (files != null)
+                if (files != null && files.Count > 0)
                 {
                     extension = CaptionPopup.GetFileType(files[0]);
                     relativePath = files[0];
