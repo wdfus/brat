@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Brat"
              mc:Ignorable="d" 
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DesignWidth="360">
+             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit" d:DesignWidth="360" KeyDown="UserControl_KeyDown">
     <Border Background="#2E2E2E"
         CornerRadius="20"
         Padding="20"
@@ -17,7 +17,7 @@
                     <ColumnDefinition Width="65*"/>
                     <ColumnDefinition Width="7*"/>
                 </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Click="Close_Click" MouseMove="Button_MouseMove" x:Name="ButtonBack" MouseLeave="Button_MouseLeave" Margin="4,0,4,0">
+                <Button Grid.Column="0" Click="Back_Click" MouseMove="Button_MouseMove" x:Name="ButtonBack" MouseLeave="Button_MouseLeave" Margin="4,0,4,0">
                     <Button.Style>
                         <Style TargetType="Button">
                             <Setter Property="Background" Value="Transparent"/>
@@ -110,17 +110,17 @@
                 </Button>
             </Grid>
             <TextBlock Text="Имя" FontSize="12" Foreground="#888"/>
-            <xctk:WatermarkTextBox x:Name="NameTextBox"  Watermark="Имя..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
+            <xctk:WatermarkTextBox x:Name="NameTextBox"  Watermark="Имя..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}" SelectionBrush="{x:Null}" SelectionTextBrush="Red"/>
             <TextBlock Text="Фамилия" FontSize="12" Foreground="#888"/>
-            <xctk:WatermarkTextBox x:Name="SecondTextBox"  Watermark="Фамилия..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
+            <xctk:WatermarkTextBox x:Name="SecondTextBox"  Watermark="Фамилия..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}" SelectionBrush="{x:Null}"/>
             <TextBlock Text="Номер телефона" FontSize="12" Foreground="#888"/>
-            <xctk:WatermarkTextBox x:Name="PhoneNumberTextBox"  Watermark="Номер..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
+            <xctk:MaskedTextBox  Mask="+0 (000) 000-00-00" x:Name="PhoneNumberTextBox" FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}" Text=""/>
             <TextBlock Text="О себе" FontSize="12" Foreground="#888"/>
             <xctk:WatermarkTextBox x:Name="AboutSelfTextBox"  Watermark="О себе..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
             <TextBlock Text="Имя пользователя" FontSize="12" Foreground="#888"/>
             <xctk:WatermarkTextBox x:Name="UsernameTextBox"  Watermark="Имя..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
             <TextBlock Text="Дата рождения" FontSize="12" Foreground="#888"/>
-            <xctk:WatermarkTextBox x:Name="DoBTextBox"  Watermark="11.05.2006..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}"/>
+            <xctk:WatermarkTextBox x:Name="DoBTextBox"  Watermark="11.05.2006..." FontSize="14" Foreground="White" Margin="0,2,0,8" Background="{x:Null}" BorderBrush="{x:Null}" SelectionBrush="{x:Null}"/>
         </StackPanel>
     </Border>
 </UserControl>

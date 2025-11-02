@@ -108,10 +108,6 @@ namespace Brat
             }
         }
 
-        private void Window_KeyDown(object sender, KeyEventArgs e)
-        {
-
-        }
 
         private void Close_Click(object sender, RoutedEventArgs e)
         {
@@ -132,6 +128,21 @@ namespace Brat
                 }
             }
 
+        }
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                FadeClosingAnimation();
+            }
+        }
+
+        private void FadeClosingAnimation()
+        {
+            Window parentWindow = Window.GetWindow(this);
+            var FadeOut = new DoubleAnimation(this.Opacity, 0, TimeSpan.FromMilliseconds(200));
+            FadeOut.Completed += (s2, e2) => parentWindow?.Close();
+            this.BeginAnimation(Window.OpacityProperty, FadeOut);
         }
 
         private void ShowPage(UserControl newPage, ContentControl ContentHolder)

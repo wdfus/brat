@@ -85,6 +85,7 @@
 
   <ItemGroup>
     <Folder Include="attachments\2025\" />
+    <Folder Include="Avatars\" />
   </ItemGroup>
 
 

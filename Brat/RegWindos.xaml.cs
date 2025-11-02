@@ -32,9 +32,11 @@ namespace Brat
             InitializeComponent();
         }
 
-        private void OpenSite_Click(object sender, RoutedEventArgs e)
+        private async void OpenSite_Click(object sender, RoutedEventArgs e)
         {
-            LoadUrl();
+            await LoadUrl();
+
+
         }
 
         async Task<string> LoadUrl()
@@ -68,7 +70,7 @@ namespace Brat
             if (response.IsSuccessStatusCode)
             {
 
-                var doc = JsonDocument.Parse(json);
+                var doc = JsonDocument.Parse(responseText);
                 Debug.WriteLine("✅ Успех! Ответ сервера: " + responseText);
                 string LoginUrl = doc.RootElement.GetProperty("login_url").GetString();
                 Process.Start(new ProcessStartInfo
@@ -76,7 +78,28 @@ namespace Brat
                     FileName = LoginUrl,
                     UseShellExecute = true // ← обязательно, иначе не откроется в .NET 5+
                 });
-                return responseText;
+
+                string url1 = "http://172.20.10.6:8000/desktop/auth/poll";
+                while (true)
+                {
+
+                    json = $"{{\"login_id\": \"{doc.RootElement.GetProperty("login_id").GetString()}\"}}";
+
+                    content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    response = await client.PostAsync(url1, content);
+
+                    // Читаем ответ как текст
+                    responseText = await response.Content.ReadAsStringAsync();
+                    await Task.Delay(2000);
+                    var mama = JsonDocument.Parse(responseText);
+                    //if (mama.RootElement.GetProperty("ok").GetBoolean() == true)
+                    //{
+                    //    MainWindow mainWindow = new MainWindow(mama.RootElement.GetProperty("user_id").GetInt32());
+                    //    mainWindow.Show();
+                    //}
+                }
+
             }
             else
             {

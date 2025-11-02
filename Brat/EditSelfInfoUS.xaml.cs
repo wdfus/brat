@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Brat.Models;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,10 +25,21 @@ namespace Brat
     public partial class EditSelfInfoUS : UserControl
     {
         MainWindow.UserClass CurrentUser;
+        int UserId;
         public EditSelfInfoUS(MainWindow.UserClass user)
         {
             InitializeComponent();
             this.CurrentUser = user;
+            if (CurrentUser != null)
+            {
+                PhoneNumberTextBox.Text = CurrentUser.PhoneNumber ?? "";
+                NameTextBox.Text = CurrentUser.FirstName;
+                SecondTextBox.Text = CurrentUser.SecondName;
+                UsernameTextBox.Text = CurrentUser.Username;
+                AboutSelfTextBox.Text = CurrentUser.AboutSelf;
+                DoBTextBox.Text = CurrentUser.Birthday;
+                UserId = CurrentUser.FromUserId;
+            }
         }
 
         private void Button_MouseMove(object sender, MouseEventArgs e)
@@ -70,6 +84,7 @@ namespace Brat
             return null;
         }
 
+
         private void AnimatePathColor(Path path, Color toColor)
         {
             // Проверяем, есть ли кисть, и не заморожена ли она
@@ -90,10 +105,89 @@ namespace Brat
             brush.BeginAnimation(SolidColorBrush.ColorProperty, animation);
         }
 
+        private async void Back_Click(object sender, RoutedEventArgs e)
+        {
+            await using (var context = new BratBaseContext())
+            {
+                User user = await context.Users.Where(x => x.Id == UserId).FirstOrDefaultAsync();
+                if (user != null)
+                {
+                    user.PhoneNumber = PhoneNumberTextBox.Text;
+                    user.FirstName = NameTextBox.Text;
+                    user.SecondName = SecondTextBox.Text;
+                    user.Username = UsernameTextBox.Text;
+                    user.AboutSelf = AboutSelfTextBox.Text;
+                    user.Birthday = string.IsNullOrWhiteSpace(DoBTextBox.Text) ? null : DateOnly.Parse(DoBTextBox.Text);
+                    await context.SaveChangesAsync();
+                    CurrentUser.PhoneNumber = PhoneNumberTextBox.Text;
+                    CurrentUser.FirstName = NameTextBox.Text;
+                    CurrentUser.SecondName = SecondTextBox.Text;
+                    CurrentUser.Username = UsernameTextBox.Text;
+                    CurrentUser.AboutSelf = AboutSelfTextBox.Text;
+                    CurrentUser.Birthday = string.IsNullOrWhiteSpace(DoBTextBox.Text) ? null : DoBTextBox.Text;
+                }
+            }
+            Window parentWindow = Window.GetWindow(this);
+            if (parentWindow != null)
+            {
+                var contentHolder = parentWindow.FindName("ContentHolder") as ContentControl;
+                if (contentHolder != null)
+                {
+                    // Можно менять контент
+                    ShowPage(new PopupProfileUC(CurrentUser), contentHolder);
+                }
+            }
+
+        }
+
+
+        private void ShowPage(UserControl newPage, ContentControl ContentHolder)
+        {
+            if (ContentHolder.Content != null)
+            {
+                // Анимация скрытия старого контрола
+                var oldContent = ContentHolder.Content as UIElement;
+                var fadeOut = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(200));
+                fadeOut.Completed += (s, e) =>
+                {
+                    // После анимации скрытия заменяем контент
+                    ContentHolder.Content = newPage;
+
+                    // Анимация появления нового
+                    var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                    newPage.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+                };
+                oldContent.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+            }
+            else
+            {
+                // Если контейнер пустой, просто вставляем с анимацией
+                ContentHolder.Content = newPage;
+                newPage.Opacity = 0;
+                var fadeIn = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                newPage.BeginAnimation(UIElement.OpacityProperty, fadeIn);
+            }
+        }
+
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             Window parentWindow = Window.GetWindow(this);
             parentWindow?.Close();
+        }
+        private void UserControl_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                FadeClosingAnimation();
+            }
+        }
+
+        private void FadeClosingAnimation()
+        {
+            Window parentWindow = Window.GetWindow(this);
+            var FadeOut = new DoubleAnimation(this.Opacity, 0, TimeSpan.FromMilliseconds(200));
+            FadeOut.Completed += (s2, e2) => parentWindow?.Close();
+            this.BeginAnimation(Window.OpacityProperty, FadeOut);
         }
     }
 }

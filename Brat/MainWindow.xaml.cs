@@ -123,7 +123,7 @@ namespace Brat
             _wsClient = new WebSocketClient();
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
-
+            //Myid = id;
             _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
             using (var context = new BratBaseContext())
             {
@@ -504,6 +504,8 @@ namespace Brat
                 SelectedChatId = -1;
                 SelectedFromUserId = -1;
                 SelectedToUserId = -1;
+                FirstDate = null;
+                LastDate = null;
                 await LoadMessages();
                 FirstLoadedMessages = false;
                 if (SelectedUserRow != null && UsersList.Items.Contains(SelectedUserRow))
@@ -710,7 +712,7 @@ namespace Brat
                         PhoneNumber = UserInfo.PhoneNumber,
                         Username = UserInfo.Username,
                         ChatId = -1,
-                        FromUserId = -1,
+                        FromUserId = UserInfo.Id,
                         LastMessageStatus = "",
                         LastMessageTime = "",
                         LastText = "",
