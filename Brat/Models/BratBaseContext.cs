@@ -26,10 +26,15 @@ public partial class BratBaseContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        string connectionString = $"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase;user=mysqladmin;password=mysqladmin";
+        string connectionString = $"server=31.31.197.33;port=3310;database=u3309507_BratBase;user=u3309507_admin;password=Qwerty2594!";
+        //string connectionString = $"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase2;user=mysqladmin;password=mysqladmin";
         var serverVersion = new MySqlServerVersion(new Version(5, 7, 0));
 
-        optionsBuilder.UseMySql(connectionString, serverVersion);
+        optionsBuilder.UseMySql(connectionString, serverVersion, mySqlOptions => mySqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,            // максимальное количество попыток
+            maxRetryDelay: TimeSpan.FromSeconds(10), // задержка между попытками
+            errorNumbersToAdd: null      // можно добавить свои номера ошибок MySQL
+        ));
         //optionsBuilder.UseMySql($"server={WebSocketClient.GetLocalIPv4()};port=3306;database=BratBase;user=mysqladmin;password=mysqladmin", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.30-mysql"));
         /* => optionsBuilder.UseMySql($"server=31.31.197.33;port=3310;database=u3309507_BratBase;user=u3309507_admin;password=Qwerty2594!", Microsoft.EntityFrameworkCore.ServerVersion.Parse("5.7-mysql"));*/
     }

@@ -1,6 +1,7 @@
 ﻿using Brat.Models;
 using FlyleafLib;
 using FlyleafLib.MediaPlayer;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -78,22 +79,21 @@ namespace Brat
                     extension = CaptionPopup.GetFileType(FilePath);
                     relativePath = FilePath;
                 }
-                string baseDir = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
-                string fullPath = Path.Combine(baseDir, relativePath);
                 if (extension == CaptionPopup.FileType.Image)
                 {
 
                     Capture.Visibility = Visibility.Visible;
-                    Capture.Source = new BitmapImage(new Uri(fullPath));
-                    Bubble.Padding = new Thickness(0);
+                    var bitmap = SftpImageLoader.LoadImageFromSftp("31.31.197.33", "u3309507", "kSKi8o2D3Yy19h3r", relativePath);
+                    Capture.Source = bitmap;
+                    Bubble.Padding = new Thickness(0);             
                     StackTimeStatus.Margin = new Thickness(0, 0, 10, 10);
                     messageText.Margin = new Thickness(10, 10, 0, 0);
                 }
                 if (extension == CaptionPopup.FileType.Video || extension == CaptionPopup.FileType.Document || extension == CaptionPopup.FileType.Audio)
                 {
                     AttachmentText.Visibility = Visibility.Visible;
-                    HyperLinkMessage.NavigateUri = new Uri(fullPath, UriKind.Absolute);
-                    HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(fullPath));
+                    HyperLinkMessage.Tag = relativePath;
+                    HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(relativePath));
                     messageText.Text = text;
                 }
 
@@ -102,10 +102,6 @@ namespace Brat
             {
             }
         }
-
-
-
-
 
 
         private async void MenuItem_Click(object sender, RoutedEventArgs e)
@@ -235,5 +231,57 @@ namespace Brat
             //    }
             //}
         }
+
+        private void HyperLinkMessage_Click(object sender, RoutedEventArgs e)
+        {
+            var hyperlink = sender as Hyperlink;
+            if (hyperlink == null) return;
+
+            string remotePath = hyperlink.Tag.ToString(); // путь на SFTP
+            string ftpServer = "31.31.197.33";
+            string username = "u3309507";
+            string password = "kSKi8o2D3Yy19h3r";
+
+            try
+            {
+                // Создаём путь к временному файлу
+                string tempFile = Path.Combine(Path.GetTempPath(), Path.GetFileName(remotePath));
+
+                // Если файл уже есть — просто открываем
+                if (File.Exists(tempFile))
+                {
+                    Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
+                    return;
+                }
+
+                using (var client = new SftpClient(ftpServer, username, password))
+                {
+                    client.Connect();
+
+                    // Проверяем, существует ли файл на сервере
+                    if (!client.Exists(remotePath))
+                    {
+                        MessageBox.Show("Файл не найден на SFTP сервере.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    // Скачиваем только если локально нет файла
+                    using (var fs = File.Create(tempFile))
+                    {
+                        client.DownloadFile(remotePath, fs);
+                    }
+
+                    client.Disconnect();
+                }
+
+                // Открываем файл
+                Process.Start(new ProcessStartInfo(tempFile) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии файла: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
     }
 }

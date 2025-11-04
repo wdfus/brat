@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Renci.SshNet;
+using Renci.SshNet.Sftp;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,6 +17,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Net.WebRequestMethods;
+using File = System.IO.File;
 using Path = System.IO.Path;
 
 namespace Brat
@@ -41,6 +45,77 @@ namespace Brat
         private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
 
+        }
+        static void EnsureRemoteDirectoryExists(SftpClient client, string path)
+        {
+            string[] parts = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            string current = "";
+            foreach (var part in parts)
+            {
+                current += "/" + part;
+                if (!client.Exists(current))
+                {
+                    client.CreateDirectory(current);
+                    Console.WriteLine($"Создан каталог: {current}");
+                }
+            }
+        }
+        public record SftpItem(string Label, ISftpFile File);
+
+        public static List<SftpItem> SaveFileRemote(string localFilePath, string baseDir, bool Video)
+        {
+            string newFileName = null;
+            string folderPath = null;
+            string destPath = null;
+            string extension = null;
+            string fileName = null;
+            string ftpServer = "31.31.197.33";
+            string username = "u3309507";
+            string password = "kSKi8o2D3Yy19h3r";
+            string remoteDir = "/var/www/u3309507/data/attachments";
+
+            using (var sftp = new SftpClient(ftpServer, username, password))
+            {
+                try
+                {
+                    string year = DateTime.Now.Year.ToString();
+                    string month = DateTime.Now.Month.ToString("D2");
+                    string day = DateTime.Now.Day.ToString("D2");
+                    folderPath = string.Join("/", remoteDir.TrimEnd('/'), year, month, day, fileName);
+                    Debug.WriteLine(folderPath);
+                    sftp.Connect();
+                    Debug.WriteLine("✅ Connected to SFTP server.");
+
+                    // Проверяем, существует ли папка
+                    EnsureRemoteDirectoryExists(sftp, folderPath);
+
+                    string remoteFilePath = $"{folderPath}/{Path.GetFileName(localFilePath)}";
+
+                    // Загружаем файл
+                    using (var fileStream = File.OpenRead(localFilePath))
+                    {
+                        sftp.UploadFile(fileStream, remoteFilePath, true);
+                    }
+
+                    Debug.WriteLine($"🚀 File uploaded successfully: {remoteFilePath}");
+                    return new List<SftpItem> {
+                        new SftpItem(remoteFilePath, sftp.Get(remoteFilePath))
+                    };
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Error: {ex}");
+                    return null;
+                }
+                finally
+                {
+                    if (sftp.IsConnected)
+                    {
+                        sftp.Disconnect();
+                        Console.WriteLine("🔌 Disconnected.");
+                    }
+                }
+            }
         }
 
         public static string SaveFile(string OriginalFilePath, string baseDir, bool Video)
@@ -76,6 +151,8 @@ namespace Brat
 
                     destPath = System.IO.Path.Combine(folderPath, newFileName);
 
+                
+
                 File.Copy(OriginalFilePath, destPath, overwrite: false);
 
                 return destPath;
@@ -96,39 +173,93 @@ namespace Brat
 
 
 
-        public static async Task<string> SaveImageByDateAsync(BitmapImage image, string basePath, string fileName)
+        //public static async Task<string> SaveImageByDateAsync(BitmapImage image, string basePath, string fileName)
+        //{
+        //    try
+        //    {
+        //        // Формируем путь: year/month/day
+        //        string year = DateTime.Now.Year.ToString();
+        //        string month = DateTime.Now.Month.ToString("D2");
+        //        string day = DateTime.Now.Day.ToString("D2");
+
+        //        string directoryPath = System.IO.Path.Combine(basePath, year, month, day);
+        //        Debug.WriteLine($"ДИРЕКТОРИ ПАС: {directoryPath}");
+        //        // Создаём папки, если их нет
+        //        Directory.CreateDirectory(directoryPath);
+
+        //        // Полный путь к файлу
+        //        string filePath = System.IO.Path.Combine(directoryPath, fileName);
+
+        //        // Сохраняем изображение
+        //        using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+        //        {
+        //            BitmapEncoder encoder = new PngBitmapEncoder(); // Можно поменять на JpegBitmapEncoder
+        //            encoder.Frames.Add(BitmapFrame.Create(image));
+        //            encoder.Save(fileStream);
+        //        }
+        //        Debug.WriteLine($"Изображение сохранено по пути: {filePath}");
+        //        return filePath;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine($"Ошибка при сохранении изображения: {ex.Message}");
+        //        return null;
+        //    }
+        //}
+
+        public static async Task<List<SftpItem>> SaveImageByDateAsync(BitmapImage image, string BasePath, string fileName)
         {
+            string ftpServer = "31.31.197.33";
+            string username = "u3309507";
+            string password = "kSKi8o2D3Yy19h3r";
+            string remoteFilePath;
             try
             {
                 // Формируем путь: year/month/day
                 string year = DateTime.Now.Year.ToString();
                 string month = DateTime.Now.Month.ToString("D2");
                 string day = DateTime.Now.Day.ToString("D2");
+                ISftpFile info;
 
-                string directoryPath = System.IO.Path.Combine(basePath, year, month, day);
-                Debug.WriteLine($"ДИРЕКТОРИ ПАС: {directoryPath}");
-                // Создаём папки, если их нет
-                Directory.CreateDirectory(directoryPath);
+                string remoteDir = "/var/www/u3309507/data/attachments";
+                string folderPath = string.Join("/", remoteDir.TrimEnd('/'), year, month, day, fileName);
 
-                // Полный путь к файлу
-                string filePath = System.IO.Path.Combine(directoryPath, fileName);
+                Debug.WriteLine($"Удалённая директория: {remoteDir}");
 
-                // Сохраняем изображение
-                using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+                using (var client = new SftpClient(ftpServer, username, password))
                 {
-                    BitmapEncoder encoder = new PngBitmapEncoder(); // Можно поменять на JpegBitmapEncoder
-                    encoder.Frames.Add(BitmapFrame.Create(image));
-                    encoder.Save(fileStream);
+                    client.Connect();
+                    Debug.WriteLine("✅ Connected to SFTP server.");
+                    // Создаём все папки, если их нет
+                    EnsureRemoteDirectoryExists(client, remoteDir);
+                    remoteFilePath = $"{folderPath}";
+                    // Сохраняем BitmapImage в MemoryStream
+
+                    using (var ms = new MemoryStream())
+                    {
+                        BitmapEncoder encoder = new PngBitmapEncoder(); // Можно поменять на JpegBitmapEncoder
+                        encoder.Frames.Add(BitmapFrame.Create(image));
+                        encoder.Save(ms);
+                        ms.Position = 0; // обязательно сбрасываем позицию перед Upload
+
+                        client.UploadFile(ms, remoteFilePath, true);
+                        info = client.Get(remoteFilePath);
+                    }
+
+                    client.Disconnect();
                 }
-                Debug.WriteLine($"Изображение сохранено по пути: {filePath}");
-                return filePath;
+
+                Debug.WriteLine($"Изображение успешно сохранено на SFTP: {folderPath}");
+                return new List<SftpItem> {
+                        new SftpItem(remoteFilePath, info) };
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при сохранении изображения: {ex.Message}");
+                Debug.WriteLine($"Ошибка при сохранении изображения на SFTP: {ex.Message}");
                 return null;
             }
         }
+
 
         private async void SendButton_Click(object sender, RoutedEventArgs e)
         {
@@ -147,21 +278,21 @@ namespace Brat
                 switch (fileType)
                 {
                     case FileType.Document:
-                        string path = SaveFile(FilePath, basePath, false);
+                        List<SftpItem> path = SaveFileRemote(FilePath, basePath, false);
                         await myWindow.SendMessageFuck(path, CaptionTextBox);
                         break;
                     case FileType.Image:
                         string PhotoName = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.{System.IO.Path.GetExtension(FilePath)}";
                         ImageBit = new BitmapImage(new Uri(FilePath));
-                        string path2 = await SaveImageByDateAsync(ImageBit, basePath, PhotoName);
+                        List<SftpItem> path2 = await SaveImageByDateAsync(ImageBit, basePath, PhotoName);
                         await myWindow.SendMessageFuck(path2, CaptionTextBox);
                         break;
                     case FileType.Video:
-                        string path3 = SaveFile(FilePath, basePath, true);
+                        List<SftpItem> path3 = SaveFileRemote(FilePath, basePath, true);
                         await myWindow.SendMessageFuck(path3, CaptionTextBox);
                         break;
                     case FileType.Audio:
-                        string path4 = SaveFile(FilePath, basePath, false);
+                        List<SftpItem> path4 = SaveFileRemote(FilePath, basePath, false);
                         await myWindow.SendMessageFuck(path4, CaptionTextBox);
                         break;
                 }

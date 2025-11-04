@@ -297,7 +297,7 @@
         Background="{DynamicResource Col.Side}"
         BorderThickness="0"
         x:Name="borderEnterField"
-        Visibility="Hidden"
+        Visibility="Visible"
         Margin="0,1,0,0"
         Height="Auto">
 
@@ -374,10 +374,11 @@
                     </Border>
 
                     <!-- Кнопка отправки -->
+
                     <Button x:Name="SendMessage"
                 Grid.Column="2"
-                Content="➤"
-                FontSize="18"
+                            Content="🎤"
+                FontSize="24"
                 FontWeight="Bold"
                 Background="#5A5A5A"
                 Foreground="White"
@@ -385,7 +386,41 @@
                 Width="56"
                 Height="40"
                 VerticalAlignment="Center"
-                Click="SendMessage_Click" HorizontalAlignment="Center"/>
+                Click="SendMessage_Click" HorizontalAlignment="Center">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Grid Background="Transparent">
+                                                <!-- Контент кнопки -->
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                <Viewbox Width="25" Height="25">
+
+                                                </Viewbox>
+
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <!-- Убираем подсветку при наведении -->
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                    <Setter Property="Cursor" Value="Hand"/>
+                                                </Trigger>
+                                                <!-- Убираем подсветку при нажатии -->
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
             </Border>
 

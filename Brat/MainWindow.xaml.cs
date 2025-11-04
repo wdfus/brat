@@ -3,6 +3,7 @@ using Brat.Models;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
+using Renci.SshNet;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -127,56 +128,48 @@ namespace Brat
             _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
             using (var context = new BratBaseContext())
             {
-                var Result = context.Chats
+                // 1️⃣ Чаты с пользователями
+                var baseChats = context.Chats
+                    .Include(c => c.UserId1Navigation)
+                    .Include(c => c.UserId2Navigation)
                     .Where(c => c.UserId1 == Myid || c.UserId2 == Myid)
-                    .Select(c => new
-                    {
-                        Chat = c,
-                        User = c.UserId1 == Myid
-                            ? c.UserId2Navigation
-                            : c.UserId1Navigation
-                    })
-                    .Select(x => new UserClass
-                    {
-                        ChatId = x.Chat.ChatId,
-                        FromUserId = x.User.Id,
-                        ToUserId = context.Chats
-                        .Where(c => c.ChatId == x.Chat.ChatId && (c.UserId1 == Myid || c.UserId2 == Myid))
-                        .AsEnumerable() // дальше вычисляется в памяти
-                        .Select(c => c.UserId1 == x.User.Id ? c.UserId2 : c.UserId1)
-                        .FirstOrDefault(),
-                        FirstName = x.User.FirstName,
-                        SecondName = x.User.SecondName,
-
-                        LastText = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.MessageText)
-                            .FirstOrDefault(),
-
-                        LastMessageStatus = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.Status)
-                            .FirstOrDefault(),
-
-                        LastMessageTime = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.SentTime)
-                            .FirstOrDefault().ToString(),
-
-                        Status = context.Messages
-                            .Where(m => m.ChatId == x.Chat.ChatId)
-                            .OrderByDescending(m => m.MessageId)
-                            .Select(m => m.Status)
-                            .FirstOrDefault().ToString(),
-                        AboutSelf = x.User.AboutSelf,
-                        Birthday = x.User.Birthday.ToString(),
-                        PhoneNumber = x.User.PhoneNumber.ToString(),
-                        Username = x.User.Username,
-                    })
                     .ToList();
+
+                // 2️⃣ Сообщения нужных чатов, последние для каждого
+                var chatIds = baseChats.Select(c => c.ChatId).ToList();
+
+                var lastMessages = context.Messages
+                    .Where(m => chatIds.Contains(m.ChatId))
+                    .AsEnumerable() // 👈 тут
+                    .GroupBy(m => m.ChatId)
+                    .Select(g => g.OrderByDescending(m => m.MessageId).FirstOrDefault())
+                    .ToList();
+
+                // 3️⃣ Формируем результат
+                var Result = baseChats.Select(c =>
+                {
+                    var user = c.UserId1 == Myid ? c.UserId2Navigation : c.UserId1Navigation;
+                    var lastMessage = lastMessages.FirstOrDefault(m => m.ChatId == c.ChatId);
+
+                    return new UserClass
+                    {
+                        ChatId = c.ChatId,
+                        FromUserId = user.Id,
+                        ToUserId = (c.UserId1 == user.Id) ? c.UserId2 : c.UserId1,
+                        FirstName = user.FirstName,
+                        SecondName = user.SecondName,
+                        AboutSelf = user.AboutSelf,
+                        Birthday = user.Birthday?.ToString(),
+                        PhoneNumber = user.PhoneNumber?.ToString(),
+                        Username = user.Username,
+
+                        LastText = lastMessage?.MessageText ?? "",
+                        LastMessageStatus = lastMessage?.Status?.ToString() ?? "",
+                        LastMessageTime = lastMessage?.SentTime?.ToString() ?? "",
+                        Status = lastMessage?.Status?.ToString() ?? ""
+                    };
+                }).ToList();
+
 
 
                 foreach (UserClass user in Result)
@@ -287,8 +280,8 @@ namespace Brat
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
             chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
 
-            try
-            {
+/*            try
+            {*/
                 using var context = new BratBaseContext();
                 {
                     SkipCount = LoadMore ? LoadedMessagesCount : 0;
@@ -447,11 +440,11 @@ namespace Brat
                 {
                     chatScroll.ScrollToEnd();
                 }
-            }
+/*            }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            }
+            }*/
         }
 
 
@@ -521,8 +514,7 @@ namespace Brat
             await SendMessageFuck(watermarkTextBox: mainTextBox);
         }
 
-
-        public async Task SendMessageFuck(string FilePath = "", WatermarkTextBox watermarkTextBox = null)
+        public async Task SendMessageFuck(List<CaptionPopup.SftpItem> sftps = null, WatermarkTextBox watermarkTextBox = null)
         {
             List<char> ForbiddenChars = new()
     {
@@ -532,7 +524,7 @@ namespace Brat
         '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
         '\u007F'
     };
-
+            string FilePath = sftps[0].Label;
             // Если поле пустое и нет файла — ничего не отправляем
             if (string.IsNullOrWhiteSpace(FilePath) &&
                 (watermarkTextBox == null || string.IsNullOrWhiteSpace(watermarkTextBox.Text)))
@@ -541,8 +533,8 @@ namespace Brat
             await using var context = new BratBaseContext();
 
             DateTime sentTime = DateTime.Now;
-            try
-            {
+            //try
+            //{
                 // создаём сообщение
                 var newMessage = new Message
                 {
@@ -560,8 +552,6 @@ namespace Brat
                 // если есть файл — создаём FileAsset и MessageAttachment
                 if (!string.IsNullOrEmpty(FilePath))
                 {
-                    string basePath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"..\..\.."));
-                    string relativePath = Path.GetRelativePath(basePath, FilePath);
 
                     string fileType = CaptionPopup.GetFileType(FilePath).ToString();
                     var provider = new FileExtensionContentTypeProvider();
@@ -571,10 +561,10 @@ namespace Brat
                     }
                     var fileAsset = new FileAsset
                     {
-                        File = relativePath.Replace("\\", "/"), // относительный путь
+                        File = FilePath, // относительный путь
                         Kind = fileType.ToLower(),
                         Mime = mimeType,
-                        Size = (ulong)new FileInfo(FilePath).Length,
+                        Size = (ulong)sftps[0].File.Attributes.Size,
                         CreatedAt = sentTime
                     };
 
@@ -628,11 +618,11 @@ namespace Brat
                 UpdateLastText(watermarkTextBox?.Text ?? "", SelectedToUserId);
                 if (watermarkTextBox != null) watermarkTextBox.Text = string.Empty;
                 chatScroll.ScrollToEnd();
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Ошибка при отправке: {ex.Message}");
-            }
+            //}
+            //catch (Exception ex)
+            //{
+            //    System.Windows.MessageBox.Show($"Ошибка при отправке: {ex.Message}");
+            //}
         }
 
 
