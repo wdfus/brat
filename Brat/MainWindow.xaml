@@ -297,7 +297,7 @@
         Background="{DynamicResource Col.Side}"
         BorderThickness="0"
         x:Name="borderEnterField"
-        Visibility="Visible"
+        Visibility="Hidden"
         Margin="0,1,0,0"
         Height="Auto">
 
@@ -386,7 +386,7 @@
                 Width="56"
                 Height="40"
                 VerticalAlignment="Center"
-                Click="SendMessage_Click" HorizontalAlignment="Center">
+                Click="SendMessage_Click" HorizontalAlignment="Center" PreviewMouseLeftButtonDown="SendMessage_MouseDown" PreviewMouseLeftButtonUp="SendMessage_MouseUp">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="Transparent"/>

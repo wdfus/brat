@@ -53,7 +53,7 @@
                        />
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="AttachmentText" TextWrapping="Wrap" MaxWidth="370" HorizontalAlignment="Left" Visibility="Collapsed">
-                        <Hyperlink x:Name="HyperLinkMessage" RequestNavigate="HyperLinkMessage_RequestNavigate" Click="HyperLinkMessage_Click">
+                        <Hyperlink x:Name="HyperLinkMessage" RequestNavigate="HyperLinkMessage_RequestNavigate" Click="HyperLinkMessage_Click" Foreground="#FFAFD1F4">
                         </Hyperlink>
                     </TextBlock>
                     <TextBlock Margin="0, 0, 0, 0" Style="{StaticResource TextSender}" FontSize="14" x:Name="messageText" TextWrapping="Wrap" MaxWidth="370" HorizontalAlignment="Left">

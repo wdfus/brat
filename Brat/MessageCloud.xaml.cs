@@ -107,7 +107,7 @@ namespace Brat
         private async void MenuItem_Click(object sender, RoutedEventArgs e)
         {
             DeleteRequested?.Invoke(this, this);
-            using (var context = new BratBaseContext())
+            await using (var context = new BratBaseContext())
             {
                 try
                 {

@@ -224,8 +224,6 @@ namespace Brat
                 string remoteDir = "/var/www/u3309507/data/attachments";
                 string folderPath = string.Join("/", remoteDir.TrimEnd('/'), year, month, day, fileName);
 
-                Debug.WriteLine($"Удалённая директория: {remoteDir}");
-
                 using (var client = new SftpClient(ftpServer, username, password))
                 {
                     client.Connect();
@@ -251,7 +249,7 @@ namespace Brat
 
                 Debug.WriteLine($"Изображение успешно сохранено на SFTP: {folderPath}");
                 return new List<SftpItem> {
-                        new SftpItem(remoteFilePath, info) };
+                        new SftpItem(folderPath, info) };
             }
             catch (Exception ex)
             {

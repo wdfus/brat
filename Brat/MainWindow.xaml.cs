@@ -3,7 +3,10 @@ using Brat.Models;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
+using NAudio.Wave;
+using NAudio.Wave.Compression;
 using Renci.SshNet;
+using Renci.SshNet.Sftp;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -27,7 +30,11 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using Xceed.Wpf.AvalonDock.Layout;
 using Xceed.Wpf.Toolkit;
+using static Brat.CaptionPopup;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Net.WebRequestMethods;
+using File = System.IO.File;
+using MessageBox = System.Windows.MessageBox;
 using Path = System.IO.Path;
 
 namespace Brat
@@ -51,6 +58,9 @@ namespace Brat
         private int SelectedChatId;
         private string FilePath = string.Empty;
         private WebSocketClient _wsClient;
+        private WaveInEvent waveSource;
+        private WaveFileWriter waveFile;
+        private string tempFilePath;
         public static class VisualHelper
         {
             public static T FindChildByTag<T>(DependencyObject parent, object tag) where T : FrameworkElement
@@ -275,122 +285,42 @@ namespace Brat
                 return;
             }
 
-            borderEnterField.Visibility = Visibility.Visible;
+
             ChatField.HorizontalAlignment = HorizontalAlignment.Left;
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
             chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
 
-/*            try
-            {*/
-                using var context = new BratBaseContext();
+            /*            try
+                        {*/
+            using var context = new BratBaseContext();
+            {
+                SkipCount = LoadMore ? LoadedMessagesCount : 0;
+                if (!LoadMore)
                 {
-                    SkipCount = LoadMore ? LoadedMessagesCount : 0;
-                    if (!LoadMore)
-                    {
-                        ChatField.Children.Clear();
-                        var headerName = await context.Users
-                    .Where(u => u.Id == SelectedToUserId)
-                    .Select(u => new { u.FirstName, u.SecondName })
-                    .FirstOrDefaultAsync();
+                    ChatField.Children.Clear();
+                    var headerName = await context.Users
+                .Where(u => u.Id == SelectedToUserId)
+                .Select(u => new { u.FirstName, u.SecondName })
+                .FirstOrDefaultAsync();
 
-                        if (headerName != null)
-                            SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
+                    if (headerName != null)
+                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
 
-                        TopRow.Visibility = Visibility.Visible;
-                        FirstLoadedMessages = true;
-                        // Для первой загрузки
-
-                        var messages = await context.Messages
-                            .Where(x => x.ChatId == chatId)
-                            .OrderByDescending(x => x.MessageId)
-                            .Skip(SkipCount)
-                            .Take(20)
-                            .Include(m => m.MessageFiles)      // связи с файлами
-                                .ThenInclude(ma => ma.File)     // подключаем сам файл
-                            .ToListAsync();
-                        LoadedMessagesCount = 0;
-                        foreach (var chat in messages.AsEnumerable().Reverse())
-                        {
-                            if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
-                            {
-                                var dateLabel = new TextBlock
-                                {
-                                    Text = GetDateLabel((DateTime)chat.SentTime),
-                                    HorizontalAlignment = HorizontalAlignment.Center,
-                                    Foreground = Brushes.Gray,
-                                    Margin = new Thickness(0, 8, 0, 8),
-                                    FontWeight = FontWeights.Bold
-                                };
-                                ChatField.Children.Add(dateLabel);
-                                LastDate = chat.SentTime.Value.Date;
-                            }
-
-                            // Формируем список путей файлов для MessageCloud
-                            List<string> files = chat.MessageFiles
-                                .Select(ma => ma.File.File)
-                                .Where(f => !string.IsNullOrEmpty(f))
-                                .ToList();
-
-                            var bubble = new MessageCloud(
-                                chat.SentTime?.ToString() ?? "",
-                                chat.MessageText,
-                                userId == chat.FromUserId ? "reciever" : "sender",
-                                chat.MessageId,
-                                Myid,
-                                chat.FromUserId,
-                                chat.Status,
-                                "",
-                                files
-                            // передаем список файлов
-                            );
-                            bubble.DeleteRequested += Message_DeleteRequested;
-                            ChatField.Children.Add(bubble);
-
-                            if (chat == messages.First())
-                                FirstDate = chat.SentTime.Value.Date;
-
-
-                        }
-                        LoadedMessagesCount += messages.Count;
-                    }
-                }
-
-
-
-                if (LoadMore)
-                {
-                    double prevExtentHeight = chatScroll.ExtentHeight;
-                    double prevOffset = chatScroll.VerticalOffset;
+                    TopRow.Visibility = Visibility.Visible;
+                    FirstLoadedMessages = true;
+                    // Для первой загрузки
 
                     var messages = await context.Messages
                         .Where(x => x.ChatId == chatId)
                         .OrderByDescending(x => x.MessageId)
                         .Skip(SkipCount)
                         .Take(20)
-                        .Include(m => m.MessageFiles)
-                            .ThenInclude(ma => ma.File)
+                        .Include(m => m.MessageFiles)      // связи с файлами
+                            .ThenInclude(ma => ma.File)     // подключаем сам файл
                         .ToListAsync();
-
-                    foreach (var chat in messages)
+                    LoadedMessagesCount = 0;
+                    foreach (var chat in messages.AsEnumerable().Reverse())
                     {
-                        Debug.WriteLine(chat.MessageText);
-                        // Получаем путь к файлу, если есть
-                        string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
-
-                        var bubble = new MessageCloud(
-                            chat.SentTime?.ToString() ?? "",
-                            chat.MessageText,
-                            userId == chat.FromUserId ? "reciever" : "sender",
-                            chat.MessageId,
-                            Myid,
-                            chat.FromUserId,
-                            chat.Status,
-                            filePath
-                        );
-
-                        bubble.DeleteRequested += Message_DeleteRequested;
-
-                        // Добавляем метку даты, если она меняется
                         if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
                         {
                             var dateLabel = new TextBlock
@@ -401,50 +331,131 @@ namespace Brat
                                 Margin = new Thickness(0, 8, 0, 8),
                                 FontWeight = FontWeights.Bold
                             };
-
-                            if (LastDate != FirstDate)
-                            {
-                                ChatField.Children.Insert(0, bubble);
-                            }
-                            else
-                            {
-                                ChatField.Children.Insert(1, bubble);
-                            }
-                            if (LastDate != FirstDate)
-                            {
-                                ChatField.Children.Insert(0, dateLabel);
-                            }
-
+                            ChatField.Children.Add(dateLabel);
                             LastDate = chat.SentTime.Value.Date;
+                        }
+
+                        // Формируем список путей файлов для MessageCloud
+                        List<string> files = chat.MessageFiles
+                            .Select(ma => ma.File.File)
+                            .Where(f => !string.IsNullOrEmpty(f))
+                            .ToList();
+
+                        var bubble = new MessageCloud(
+                            chat.SentTime?.ToString() ?? "",
+                            chat.MessageText,
+                            userId == chat.FromUserId ? "reciever" : "sender",
+                            chat.MessageId,
+                            Myid,
+                            chat.FromUserId,
+                            chat.Status,
+                            "",
+                            files
+                        // передаем список файлов
+                        );
+                        bubble.DeleteRequested += Message_DeleteRequested;
+                        ChatField.Children.Add(bubble);
+
+                        if (chat == messages.First())
+                            FirstDate = chat.SentTime.Value.Date;
+
+
+                    }
+                    LoadedMessagesCount += messages.Count;
+                }
+            }
+
+
+
+            if (LoadMore)
+            {
+                double prevExtentHeight = chatScroll.ExtentHeight;
+                double prevOffset = chatScroll.VerticalOffset;
+
+                var messages = await context.Messages
+                    .Where(x => x.ChatId == chatId)
+                    .OrderByDescending(x => x.MessageId)
+                    .Skip(SkipCount)
+                    .Take(20)
+                    .Include(m => m.MessageFiles)
+                        .ThenInclude(ma => ma.File)
+                    .ToListAsync();
+
+                foreach (var chat in messages)
+                {
+                    Debug.WriteLine(chat.MessageText);
+                    // Получаем путь к файлу, если есть
+                    string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
+
+                    var bubble = new MessageCloud(
+                        chat.SentTime?.ToString() ?? "",
+                        chat.MessageText,
+                        userId == chat.FromUserId ? "reciever" : "sender",
+                        chat.MessageId,
+                        Myid,
+                        chat.FromUserId,
+                        chat.Status,
+                        filePath
+                    );
+
+                    bubble.DeleteRequested += Message_DeleteRequested;
+
+                    // Добавляем метку даты, если она меняется
+                    if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
+                    {
+                        var dateLabel = new TextBlock
+                        {
+                            Text = GetDateLabel((DateTime)chat.SentTime),
+                            HorizontalAlignment = HorizontalAlignment.Center,
+                            Foreground = Brushes.Gray,
+                            Margin = new Thickness(0, 8, 0, 8),
+                            FontWeight = FontWeights.Bold
+                        };
+
+                        if (LastDate != FirstDate)
+                        {
+                            ChatField.Children.Insert(0, bubble);
                         }
                         else
                         {
                             ChatField.Children.Insert(1, bubble);
                         }
+                        if (LastDate != FirstDate)
+                        {
+                            ChatField.Children.Insert(0, dateLabel);
+                        }
+
+                        LastDate = chat.SentTime.Value.Date;
                     }
-
-                    LoadedMessagesCount += messages.Count;
-
-                    chatScroll.UpdateLayout();
-                    double newExtentHeight = chatScroll.ExtentHeight;
-
-                    // Сохраняем смещение скролла
-                    chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+                    else
+                    {
+                        ChatField.Children.Insert(1, bubble);
+                    }
                 }
 
+                LoadedMessagesCount += messages.Count;
+
+                chatScroll.UpdateLayout();
+                double newExtentHeight = chatScroll.ExtentHeight;
+
+                // Сохраняем смещение скролла
+                chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+            }
 
 
 
-                // Скролим вниз, если это первая загрузка
-                if (!LoadMore)
-                {
-                    chatScroll.ScrollToEnd();
-                }
-/*            }
-            catch (Exception ex)
+
+            // Скролим вниз, если это первая загрузка
+            if (!LoadMore)
             {
-                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-            }*/
+                chatScroll.ScrollToEnd();
+            }
+            borderEnterField.Visibility = Visibility.Visible;
+            /*            }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
+                        }*/
         }
 
 
@@ -511,7 +522,11 @@ namespace Brat
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
-            await SendMessageFuck(watermarkTextBox: mainTextBox);
+            if (sender is Button button && button.Content == "➤")
+            {
+                await SendMessageFuck(watermarkTextBox: mainTextBox);
+            }
+
         }
 
         public async Task SendMessageFuck(List<CaptionPopup.SftpItem> sftps = null, WatermarkTextBox watermarkTextBox = null)
@@ -524,7 +539,11 @@ namespace Brat
         '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
         '\u007F'
     };
-            string FilePath = sftps[0].Label;
+            if (sftps != null)
+            {
+                FilePath = sftps[0].Label;
+            }
+
             // Если поле пустое и нет файла — ничего не отправляем
             if (string.IsNullOrWhiteSpace(FilePath) &&
                 (watermarkTextBox == null || string.IsNullOrWhiteSpace(watermarkTextBox.Text)))
@@ -535,89 +554,88 @@ namespace Brat
             DateTime sentTime = DateTime.Now;
             //try
             //{
-                // создаём сообщение
-                var newMessage = new Message
+            // создаём сообщение
+            var newMessage = new Message
+            {
+                ChatId = SelectedChatId,
+                FromUserId = SelectedFromUserId,
+                UserId = SelectedToUserId,
+                MessageText = watermarkTextBox?.Text ?? string.Empty,
+                Status = "notread",
+                SentTime = sentTime,
+            };
+
+            await context.Messages.AddAsync(newMessage);
+            await context.SaveChangesAsync(); // сохраняем, чтобы получить MessageId
+
+            // если есть файл — создаём FileAsset и MessageAttachment
+            if (!string.IsNullOrEmpty(FilePath))
+            {
+                string fileType = CaptionPopup.GetFileType(FilePath).ToString();
+                var provider = new FileExtensionContentTypeProvider();
+                if (!provider.TryGetContentType("voice.ogg", out var mimeType))
                 {
-                    ChatId = SelectedChatId,
-                    FromUserId = SelectedFromUserId,
-                    UserId = SelectedToUserId,
-                    MessageText = watermarkTextBox?.Text ?? string.Empty,
-                    Status = "notread",
-                    SentTime = sentTime,
+                    mimeType = "application/octet-stream";
+                }
+                var fileAsset = new FileAsset
+                {
+                    File = FilePath, // относительный путь
+                    Kind = fileType.ToLower(),
+                    Mime = mimeType,
+                    Size = (ulong)sftps[0].File.Attributes.Size,
+                    CreatedAt = sentTime
                 };
 
-                await context.Messages.AddAsync(newMessage);
-                await context.SaveChangesAsync(); // сохраняем, чтобы получить MessageId
+                await context.FileAssets.AddAsync(fileAsset);
+                await context.SaveChangesAsync();
 
-                // если есть файл — создаём FileAsset и MessageAttachment
-                if (!string.IsNullOrEmpty(FilePath))
+                var attachment = new MessageAttachment
                 {
+                    MessageId = newMessage.MessageId,
+                    FileId = (int)fileAsset.Id,
+                    CreatedAt = sentTime
+                };
 
-                    string fileType = CaptionPopup.GetFileType(FilePath).ToString();
-                    var provider = new FileExtensionContentTypeProvider();
-                    if (!provider.TryGetContentType("voice.ogg", out var mimeType))
-                    {
-                        mimeType = "application/octet-stream";
-                    }
-                    var fileAsset = new FileAsset
-                    {
-                        File = FilePath, // относительный путь
-                        Kind = fileType.ToLower(),
-                        Mime = mimeType,
-                        Size = (ulong)sftps[0].File.Attributes.Size,
-                        CreatedAt = sentTime
-                    };
-
-                    await context.FileAssets.AddAsync(fileAsset);
-                    await context.SaveChangesAsync();
-
-                    var attachment = new MessageAttachment
-                    {
-                        MessageId = newMessage.MessageId,
-                        FileId = (int)fileAsset.Id,
-                        CreatedAt = sentTime
-                    };
-
-                    await context.MessageAttachments.AddAsync(attachment);
-                    await context.SaveChangesAsync();
-                }
+                await context.MessageAttachments.AddAsync(attachment);
+                await context.SaveChangesAsync();
+            }
 
 
-                // создаём визуальное сообщение
-                var isSender = SelectedFromUserId == newMessage.FromUserId;
-                var bubble = new MessageCloud(
-                    newMessage.SentTime?.ToString() ?? "",
-                    newMessage.MessageText,
-                    isSender ? "sender" : "reciever",
-                    newMessage.MessageId,
-                    Myid,
-                    newMessage.UserId,
-                    newMessage.Status,
-                    FilePath ?? ""
-                );
+            // создаём визуальное сообщение
+            var isSender = SelectedFromUserId == newMessage.FromUserId;
+            var bubble = new MessageCloud(
+                newMessage.SentTime?.ToString() ?? "",
+                newMessage.MessageText,
+                isSender ? "sender" : "reciever",
+                newMessage.MessageId,
+                Myid,
+                newMessage.UserId,
+                newMessage.Status,
+                FilePath ?? ""
+            );
 
-                bubble.DeleteRequested += Message_DeleteRequested;
+            bubble.DeleteRequested += Message_DeleteRequested;
 
-                // если дата другая — вставляем метку даты
-                if (LastDate == null || LastDate.Value.Date != sentTime.Date)
+            // если дата другая — вставляем метку даты
+            if (LastDate == null || LastDate.Value.Date != sentTime.Date)
+            {
+                var dateLabel = new TextBlock
                 {
-                    var dateLabel = new TextBlock
-                    {
-                        Text = GetDateLabel(sentTime),
-                        HorizontalAlignment = HorizontalAlignment.Center,
-                        Foreground = Brushes.Gray,
-                        Margin = new Thickness(0, 8, 0, 8),
-                        FontWeight = FontWeights.Bold
-                    };
-                    ChatField.Children.Add(dateLabel);
-                    LastDate = sentTime.Date;
-                }
+                    Text = GetDateLabel(sentTime),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = Brushes.Gray,
+                    Margin = new Thickness(0, 8, 0, 8),
+                    FontWeight = FontWeights.Bold
+                };
+                ChatField.Children.Add(dateLabel);
+                LastDate = sentTime.Date;
+            }
 
-                ChatField.Children.Add(bubble);
-                ChatField.UpdateLayout();
-                UpdateLastText(watermarkTextBox?.Text ?? "", SelectedToUserId);
-                if (watermarkTextBox != null) watermarkTextBox.Text = string.Empty;
-                chatScroll.ScrollToEnd();
+            ChatField.Children.Add(bubble);
+            ChatField.UpdateLayout();
+            UpdateLastText(watermarkTextBox?.Text ?? "", SelectedToUserId);
+            if (watermarkTextBox != null) watermarkTextBox.Text = string.Empty;
+            chatScroll.ScrollToEnd();
             //}
             //catch (Exception ex)
             //{
@@ -830,6 +848,14 @@ namespace Brat
         {
             if (sender is TextBox tb)
             {
+                if (tb.Text.Length > 0)
+                {
+                    SendMessage.Content = "➤";
+                }
+                else
+                {
+                    SendMessage.Content = "🎤";
+                }
                 tb.UpdateLayout();
                 Debug.WriteLine($"{MainGrid.RowDefinitions[2].Height.Value}");
                 var formattedText = new FormattedText(
@@ -919,5 +945,135 @@ namespace Brat
 
             }
         }
+
+        // ↓ Добавить эти поля в начало MainWindow класса (где другие private поля)
+        private bool isButtonHeld = false;
+        private bool isRecording = false;
+        private DateTime mouseDownTime;
+        private const int HoldThresholdMs = 400;
+
+        private async void SendMessage_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button button && button.Content?.ToString() == "🎤")
+            {
+                mouseDownTime = DateTime.Now;
+                isButtonHeld = true;
+                isRecording = false;
+
+                // Асинхронная задержка перед стартом записи
+                await Task.Delay(HoldThresholdMs);
+
+                if (isButtonHeld) // если кнопку всё ещё держат — начинаем запись
+                {
+                    await StartRecordingAsync();
+                }
+            }
+        }
+
+        private async void SendMessage_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Button button && button.Content?.ToString() == "🎤")
+            {
+                isButtonHeld = false;
+                TimeSpan holdTime = DateTime.Now - mouseDownTime;
+
+                if (isRecording)
+                {
+                    await StopRecordingAndUploadAsync();
+                }
+                else if (holdTime.TotalMilliseconds < HoldThresholdMs)
+                {
+                    MessageBox.Show("Короткое нажатие — можно вставить другое действие");
+                }
+            }
+        }
+
+        private async Task StartRecordingAsync()
+        {
+            try
+            {
+                isRecording = true;
+                string tempDir = Path.GetTempPath();
+                string fileName = $"voice_{DateTime.Now:yyyyMMdd_HHmmss}.wav";
+                tempFilePath = Path.Combine(tempDir, fileName);
+
+                waveSource = new WaveInEvent { WaveFormat = new WaveFormat(44100, 1) };
+                waveFile = new WaveFileWriter(tempFilePath, waveSource.WaveFormat);
+
+                waveSource.DataAvailable += (s, a) =>
+                {
+                    waveFile?.Write(a.Buffer, 0, a.BytesRecorded);
+                };
+
+                waveSource.RecordingStopped += (s, a) =>
+                {
+                    waveFile?.Dispose();
+                    waveSource?.Dispose();
+                };
+
+                waveSource.StartRecording();
+
+                Debug.WriteLine($"🎙 Начата запись: {tempFilePath}");
+                // Можно добавить визуальный индикатор (например, красную подсветку)
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при старте записи: {ex.Message}");
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task StopRecordingAndUploadAsync()
+        {
+            try
+            {
+                if (!isRecording) return;
+                isRecording = false;
+
+                waveSource?.StopRecording();
+                Debug.WriteLine($"⏹ Запись остановлена: {tempFilePath}");
+
+                string ftpServer = "31.31.197.33";
+                string username = "u3309507";
+                string password = "kSKi8o2D3Yy19h3r";
+                string remoteDir = "/var/www/u3309507/data/attachments/voices";
+                string remotePath = $"{remoteDir}/{Path.GetFileName(tempFilePath)}";
+                ISftpFile sftpFile = null;
+
+                // Асинхронная отправка на SFTP
+                await Task.Run(() =>
+                {
+                    using (var client = new SftpClient(ftpServer, username, password))
+                    {
+                        client.Connect();
+
+                        if (!client.Exists(remoteDir))
+                            client.CreateDirectory(remoteDir);
+
+                        using (var fs = File.OpenRead(tempFilePath))
+                        {
+                            client.UploadFile(fs, remotePath, true);
+                        }
+                        sftpFile = client.Get(remotePath);
+                        client.Disconnect();
+                    }
+                });
+
+                Debug.WriteLine($"✅ Голосовое сообщение загружено: {remotePath}");
+                List<SftpItem> d = new List<SftpItem> {
+                        new SftpItem(remotePath, sftpFile)
+                    };
+                await SendMessageFuck(d, mainTextBox);
+                MessageBox.Show("🎤 Голосовое сообщение отправлено!");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при отправке: {ex.Message}");
+            }
+
+            await Task.CompletedTask;
+        }
+
     }
 }
