@@ -110,6 +110,12 @@ namespace Brat
             await using (var context = new BratBaseContext())
             {
                 User user = await context.Users.Where(x => x.Id == UserId).FirstOrDefaultAsync();
+                var UN = await context.Users.Where(x => x.Username == UsernameTextBox.Text).FirstOrDefaultAsync();
+                if (UN.Id != UserId)
+                {
+                    MessageBox.Show("Используйте другое имя пользователя!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
                 if (user != null)
                 {
                     user.PhoneNumber = PhoneNumberTextBox.Text;

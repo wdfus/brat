@@ -5,7 +5,7 @@
         AllowsTransparency="True"
         Background="Transparent"
         PreviewKeyDown="Window_PreviewKeyDown"
-    WindowStartupLocation="CenterOwner"
+        WindowStartupLocation="CenterOwner"
         ShowInTaskbar="False"
         SizeToContent="WidthAndHeight"
         Topmost="True" 
@@ -69,8 +69,8 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Button Content="Добавить" Grid.Column="0" Foreground="White"/>
-                <Button Content="Отмена" Click="Button_Click" Grid.Column="2" Foreground="White"/>
+                <Button Content="Добавить" Grid.Column="0" Foreground="White" Visibility="Hidden"/>
+                <Button x:Name="CancelButton" Content="Отмена" Click="Button_Click" Grid.Column="2" Foreground="White"/>
                 <Button x:Name="SendButton" Content="Отправить" Click="SendButton_Click" Grid.Column="3" Foreground="White"/>
             </Grid>
         </Grid>

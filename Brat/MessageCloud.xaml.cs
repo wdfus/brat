@@ -48,6 +48,7 @@ namespace Brat
             {
                 MessageDate.Text = time.ToString("HH:mm");
             }
+
             if (MessageType == "sender")
             {
                 messageText.Text = text;
@@ -96,7 +97,6 @@ namespace Brat
                     HyperLinkMessage.Inlines.Add(System.IO.Path.GetFileName(relativePath));
                     messageText.Text = text;
                 }
-
             }
             catch (System.ArgumentOutOfRangeException ex)
             {

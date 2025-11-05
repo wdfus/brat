@@ -46,10 +46,12 @@ namespace Brat
     public partial class MainWindow : Window
     {
         private UserInfo popup;
+        private CaptionPopup captionPopup;
         private UserRow SelectedUserRow;
         DateTime? LastDate = null;
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
+        private bool _isLoadingMessages = false;
         private int _lastLineCount = 1;
         public static int Myid = 1;
         private int SelectedToUserId;
@@ -135,7 +137,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
             //Myid = id;
-            _ = _wsClient.ConnectAsync($"ws://{WebSocketClient.GetLocalIPv4()}:6789");
+            _ = _wsClient.ConnectAsync($"ws://172.20.10.2:6789");
             using (var context = new BratBaseContext())
             {
                 // 1️⃣ Чаты с пользователями
@@ -264,63 +266,151 @@ namespace Brat
             return dt.ToString("dd MMMM"); // например, "21 октября"
         }
 
+
+        private void SetFaker(string text)
+        {
+            ChatField.Children.Clear();
+            // Заглушка, если чат не выбран
+            ChatField.HorizontalAlignment = HorizontalAlignment.Center;
+            ChatField.VerticalAlignment = VerticalAlignment.Center;
+            ChatField.Children.Add(new TextBlock
+            {
+                FontSize = 24,
+                Text = text,
+                Foreground = Brushes.White,
+            });
+
+            TopRow.Visibility = Visibility.Collapsed;
+            SetHeaderText("");
+        }
+
         private async Task LoadMessages(int userId = -1, int chatId = -1, bool LoadMore = false)
         {
             int SkipCount;
             if ((userId == -1 || chatId == -1) && !LoadMore)
             {
-                ChatField.Children.Clear();
-                // Заглушка, если чат не выбран
-                ChatField.HorizontalAlignment = HorizontalAlignment.Center;
-                ChatField.VerticalAlignment = VerticalAlignment.Center;
-                ChatField.Children.Add(new TextBlock
-                {
-                    FontSize = 24,
-                    Text = "Выберите, кому вы хотите написать...",
-                    Foreground = Brushes.White,
-                });
-
-                TopRow.Visibility = Visibility.Collapsed;
-                SetHeaderText("");
+                SetFaker("Выберите, кому вы хотите написать...");
                 return;
             }
 
 
             ChatField.HorizontalAlignment = HorizontalAlignment.Left;
             ChatField.VerticalAlignment = VerticalAlignment.Bottom;
-            chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
-
-            /*            try
-                        {*/
-            using var context = new BratBaseContext();
+            _isLoadingMessages = true;
+            try
             {
-                SkipCount = LoadMore ? LoadedMessagesCount : 0;
-                if (!LoadMore)
+                using var context = new BratBaseContext();
                 {
-                    ChatField.Children.Clear();
-                    var headerName = await context.Users
-                .Where(u => u.Id == SelectedToUserId)
-                .Select(u => new { u.FirstName, u.SecondName })
-                .FirstOrDefaultAsync();
+                    SkipCount = LoadMore ? LoadedMessagesCount : 0;
+                    if (!LoadMore)
+                    {
+                        ChatField.Children.Clear();
+                        var headerName = await context.Users
+                    .Where(u => u.Id == SelectedToUserId)
+                    .Select(u => new { u.FirstName, u.SecondName })
+                    .FirstOrDefaultAsync();
 
-                    if (headerName != null)
-                        SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
 
-                    TopRow.Visibility = Visibility.Visible;
-                    FirstLoadedMessages = true;
-                    // Для первой загрузки
+
+
+                        FirstLoadedMessages = true;
+                        // Для первой загрузки
+
+                        var messages = await context.Messages
+                            .Where(x => x.ChatId == chatId)
+                            .OrderByDescending(x => x.MessageId)
+                            .Skip(SkipCount)
+                            .Take(20)
+                            .Include(m => m.MessageFiles)      // связи с файлами
+                                .ThenInclude(ma => ma.File)     // подключаем сам файл
+                            .ToListAsync();
+                        LoadedMessagesCount = 0;
+                        foreach (var chat in messages.AsEnumerable().Reverse())
+                        {
+                            if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
+                            {
+                                var dateLabel = new TextBlock
+                                {
+                                    Text = GetDateLabel((DateTime)chat.SentTime),
+                                    HorizontalAlignment = HorizontalAlignment.Center,
+                                    Foreground = Brushes.Gray,
+                                    Margin = new Thickness(0, 8, 0, 8),
+                                    FontWeight = FontWeights.Bold
+                                };
+                                ChatField.Children.Add(dateLabel);
+                                LastDate = chat.SentTime.Value.Date;
+                            }
+
+                            // Формируем список путей файлов для MessageCloud
+                            List<string> files = chat.MessageFiles
+                                .Select(ma => ma.File.File)
+                                .Where(f => !string.IsNullOrEmpty(f))
+                                .ToList();
+                            var bubble = new MessageCloud(
+                                chat.SentTime?.ToString() ?? "",
+                                chat.MessageText,
+                                userId == chat.FromUserId ? "reciever" : "sender",
+                                chat.MessageId,
+                                Myid,
+                                chat.FromUserId,
+                                chat.Status,
+                                "",
+                                files
+                            // передаем список файлов
+                            );
+                            bubble.DeleteRequested += Message_DeleteRequested;
+                            ChatField.Children.Add(bubble);
+
+                            if (chat == messages.First())
+                                FirstDate = chat.SentTime.Value.Date;
+
+
+                        }
+                        if (headerName != null)
+                            SetHeaderText($"{headerName.FirstName} {headerName.SecondName}");
+                        TopRow.Visibility = Visibility.Visible;
+                        chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
+                        LoadedMessagesCount += messages.Count;
+                    }
+                }
+
+
+
+                if (LoadMore)
+                {
+                    Debug.WriteLine("Здесь фолс блять");
+                    double prevExtentHeight = chatScroll.ExtentHeight;
+                    double prevOffset = chatScroll.VerticalOffset;
 
                     var messages = await context.Messages
                         .Where(x => x.ChatId == chatId)
                         .OrderByDescending(x => x.MessageId)
                         .Skip(SkipCount)
                         .Take(20)
-                        .Include(m => m.MessageFiles)      // связи с файлами
-                            .ThenInclude(ma => ma.File)     // подключаем сам файл
+                        .Include(m => m.MessageFiles)
+                            .ThenInclude(ma => ma.File)
                         .ToListAsync();
-                    LoadedMessagesCount = 0;
-                    foreach (var chat in messages.AsEnumerable().Reverse())
+
+                    foreach (var chat in messages)
                     {
+                        Debug.WriteLine(chat.MessageText);
+                        // Получаем путь к файлу, если есть
+                        string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
+
+                        var bubble = new MessageCloud(
+                            chat.SentTime?.ToString() ?? "",
+                            chat.MessageText,
+                            userId == chat.FromUserId ? "reciever" : "sender",
+                            chat.MessageId,
+                            Myid,
+                            chat.FromUserId,
+                            chat.Status,
+                            filePath
+                        );
+
+                        bubble.DeleteRequested += Message_DeleteRequested;
+
+                        // Добавляем метку даты, если она меняется
                         if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
                         {
                             var dateLabel = new TextBlock
@@ -331,131 +421,55 @@ namespace Brat
                                 Margin = new Thickness(0, 8, 0, 8),
                                 FontWeight = FontWeights.Bold
                             };
-                            ChatField.Children.Add(dateLabel);
+
+                            if (LastDate != FirstDate)
+                            {
+                                ChatField.Children.Insert(0, bubble);
+                            }
+                            else
+                            {
+                                ChatField.Children.Insert(1, bubble);
+                            }
+                            if (LastDate != FirstDate)
+                            {
+                                ChatField.Children.Insert(0, dateLabel);
+                            }
+
                             LastDate = chat.SentTime.Value.Date;
-                        }
-
-                        // Формируем список путей файлов для MessageCloud
-                        List<string> files = chat.MessageFiles
-                            .Select(ma => ma.File.File)
-                            .Where(f => !string.IsNullOrEmpty(f))
-                            .ToList();
-
-                        var bubble = new MessageCloud(
-                            chat.SentTime?.ToString() ?? "",
-                            chat.MessageText,
-                            userId == chat.FromUserId ? "reciever" : "sender",
-                            chat.MessageId,
-                            Myid,
-                            chat.FromUserId,
-                            chat.Status,
-                            "",
-                            files
-                        // передаем список файлов
-                        );
-                        bubble.DeleteRequested += Message_DeleteRequested;
-                        ChatField.Children.Add(bubble);
-
-                        if (chat == messages.First())
-                            FirstDate = chat.SentTime.Value.Date;
-
-
-                    }
-                    LoadedMessagesCount += messages.Count;
-                }
-            }
-
-
-
-            if (LoadMore)
-            {
-                double prevExtentHeight = chatScroll.ExtentHeight;
-                double prevOffset = chatScroll.VerticalOffset;
-
-                var messages = await context.Messages
-                    .Where(x => x.ChatId == chatId)
-                    .OrderByDescending(x => x.MessageId)
-                    .Skip(SkipCount)
-                    .Take(20)
-                    .Include(m => m.MessageFiles)
-                        .ThenInclude(ma => ma.File)
-                    .ToListAsync();
-
-                foreach (var chat in messages)
-                {
-                    Debug.WriteLine(chat.MessageText);
-                    // Получаем путь к файлу, если есть
-                    string filePath = chat.MessageFiles?.FirstOrDefault()?.File?.File ?? "";
-
-                    var bubble = new MessageCloud(
-                        chat.SentTime?.ToString() ?? "",
-                        chat.MessageText,
-                        userId == chat.FromUserId ? "reciever" : "sender",
-                        chat.MessageId,
-                        Myid,
-                        chat.FromUserId,
-                        chat.Status,
-                        filePath
-                    );
-
-                    bubble.DeleteRequested += Message_DeleteRequested;
-
-                    // Добавляем метку даты, если она меняется
-                    if (LastDate == null || LastDate.Value.Date != chat.SentTime.Value.Date)
-                    {
-                        var dateLabel = new TextBlock
-                        {
-                            Text = GetDateLabel((DateTime)chat.SentTime),
-                            HorizontalAlignment = HorizontalAlignment.Center,
-                            Foreground = Brushes.Gray,
-                            Margin = new Thickness(0, 8, 0, 8),
-                            FontWeight = FontWeights.Bold
-                        };
-
-                        if (LastDate != FirstDate)
-                        {
-                            ChatField.Children.Insert(0, bubble);
                         }
                         else
                         {
                             ChatField.Children.Insert(1, bubble);
                         }
-                        if (LastDate != FirstDate)
-                        {
-                            ChatField.Children.Insert(0, dateLabel);
-                        }
+                    }
 
-                        LastDate = chat.SentTime.Value.Date;
-                    }
-                    else
-                    {
-                        ChatField.Children.Insert(1, bubble);
-                    }
+                    LoadedMessagesCount += messages.Count;
+
+                    chatScroll.UpdateLayout();
+                    double newExtentHeight = chatScroll.ExtentHeight;
+
+                    // Сохраняем смещение скролла
+                    chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
                 }
 
-                LoadedMessagesCount += messages.Count;
 
-                chatScroll.UpdateLayout();
-                double newExtentHeight = chatScroll.ExtentHeight;
 
-                // Сохраняем смещение скролла
-                chatScroll.ScrollToVerticalOffset(prevOffset + (newExtentHeight - prevExtentHeight));
+
+                // Скролим вниз, если это первая загрузка
+                if (!LoadMore)
+                {
+                    chatScroll.ScrollToEnd();
+                }
+                borderEnterField.Visibility = Visibility.Visible;
             }
-
-
-
-
-            // Скролим вниз, если это первая загрузка
-            if (!LoadMore)
+            catch (Exception ex)
             {
-                chatScroll.ScrollToEnd();
+                Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
             }
-            borderEnterField.Visibility = Visibility.Visible;
-            /*            }
-                        catch (Exception ex)
-                        {
-                            Debug.WriteLine($"[LoadMessagesAsync] Ошибка: {ex.Message}");
-                        }*/
+            finally
+            {
+                _isLoadingMessages = false;
+            }
         }
 
 
@@ -481,16 +495,26 @@ namespace Brat
 
         private async void UsersList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
+
             ListBoxItem a = ItemsControl.ContainerFromElement(UsersList, e.OriginalSource as DependencyObject) as ListBoxItem;
             if (a != null && a.Content is UserRow userrow)
             {
-                SelectedUserRow = userrow;
-                SelectedToUserId = (int)userrow.gridFather.Tag;
-                SelectedChatId = (int)userrow.Tag;
-                SelectedFromUserId = (int)userrow.TagToUserId.Tag;
-                await LoadMessages(SelectedToUserId, SelectedChatId, false);
-                userrow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF37587E"));
-
+                if (userrow != SelectedUserRow)
+                {
+                    if (SelectedUserRow != null)
+                    {
+                        SelectedUserRow.gridFather.Background = Brushes.Transparent;
+                    }
+                    FirstDate = null;
+                    LastDate = null;
+                    LoadedMessagesCount = 0;
+                    SelectedUserRow = userrow;
+                    SelectedToUserId = (int)userrow.gridFather.Tag;
+                    SelectedChatId = (int)userrow.Tag;
+                    SelectedFromUserId = (int)userrow.TagToUserId.Tag;
+                    userrow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FF37587E"));
+                    await LoadMessages(SelectedToUserId, SelectedChatId, false);
+                }
             }
         }
 
@@ -502,7 +526,7 @@ namespace Brat
         // В code-behind
         private async void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Escape)
+            if (e.Key == Key.Escape && !_isLoadingMessages)
             {
                 borderEnterField.Visibility = Visibility.Hidden;
                 SelectedChatId = -1;
@@ -516,6 +540,7 @@ namespace Brat
                 {
                     SelectedUserRow.gridFather.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FFFFFF"));
                     chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Hidden;
+                    SelectedUserRow = null;
                 }
             }
         }
@@ -562,6 +587,7 @@ namespace Brat
                 UserId = SelectedToUserId,
                 MessageText = watermarkTextBox?.Text ?? string.Empty,
                 Status = "notread",
+                Type = sftps == null ? "message" : "attachment",
                 SentTime = sentTime,
             };
 
@@ -669,23 +695,20 @@ namespace Brat
             Dispatcher.Invoke(() =>
             {
                 using var doc = JsonDocument.Parse(message);
-                int fromUserId = doc.RootElement.GetProperty("to_user_id").GetInt32();
-                int MessageId = doc.RootElement.GetProperty("message_id").GetInt32();
-                string text = doc.RootElement.GetProperty("message_text").GetString();
-                string timeString = doc.RootElement.GetProperty("SentTime").GetString();
-                string Status = doc.RootElement.GetProperty("status").GetString();
+                int MessageId = doc.RootElement.GetProperty("id").GetInt32();
+                string timeString = doc.RootElement.GetProperty("sent_time").ToString();
 
                 if (DateTime.TryParse(timeString, out DateTime time))
                 {
                     Console.WriteLine(time.ToString("HH:mm"));
 
-                    Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
-                    UpdateLastText(text, fromUserId);
-                    if (SelectedToUserId == fromUserId)
-                    {
-                        var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, fromUserId, Status); ;
-                        ChatField.Children.Add(receiver);
-                    }
+                    /*                    Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
+                                        UpdateLastText(text, fromUserId);
+                                        if (SelectedToUserId == fromUserId)
+                                        {
+                                            var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, fromUserId, Status); ;
+                                            ChatField.Children.Add(receiver);
+                                        }*/
                 }
             });
         }
@@ -731,6 +754,7 @@ namespace Brat
                 }
 
                 popup = new UserInfo(userClass);
+                popup.Topmost = false;
                 popup.Owner = this;
                 popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
                 DimLayer.Visibility = Visibility.Visible;
@@ -748,6 +772,7 @@ namespace Brat
                     var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
                     FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
                     DimLayer.BeginAnimation(OpacityProperty, FadeOut);
+                    this.Activate();
                     popup = null;
                 };
 
@@ -922,7 +947,7 @@ namespace Brat
 
         private async void chatScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            if (e.VerticalOffset == 0 && FirstLoadedMessages == true) // пользователь долистал вверх
+            if (e.VerticalOffset == 0 && FirstLoadedMessages == true && !_isLoadingMessages) // пользователь долистал вверх
             {
                 await LoadMessages(SelectedToUserId, SelectedChatId, LoadMore: true);
             }
@@ -940,8 +965,50 @@ namespace Brat
             if (dialog.ShowDialog() == true)
             {
                 FilePath = dialog.FileName;
-                CaptionPopup captionPopup = new CaptionPopup(FilePath);
+                captionPopup = new CaptionPopup(FilePath);
+                captionPopup.Topmost = false;
+                captionPopup.Owner = this;
+                DimLayer.Visibility = Visibility.Visible;
+                var fadeIn = new DoubleAnimation(0, 0.3, TimeSpan.FromMilliseconds(200));
+                DimLayer.BeginAnimation(OpacityProperty, fadeIn);
+                captionPopup.Opacity = 0;
+                captionPopup.Loaded += (s, args) =>
+                {
+                    var popupFade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                    captionPopup.BeginAnimation(Window.OpacityProperty, popupFade);
+                };
+
+                captionPopup.Closed += (s, args) =>
+                {
+                    var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
+                    FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
+                    DimLayer.BeginAnimation(OpacityProperty, FadeOut);
+                    this.Activate();
+                    captionPopup = null;
+                };
+
                 captionPopup.Show();
+
+                if (captionPopup != null)
+                {
+                    this.LocationChanged += (s, e) =>
+                    {
+                        if (captionPopup != null)
+                        {
+                            captionPopup.Left = this.Left + (this.Width - captionPopup.Width) / 2;
+                            captionPopup.Top = this.Top + (this.Height - captionPopup.Height) / 2;
+                        }
+                    };
+
+                    this.SizeChanged += (s, e) =>
+                    {
+                        if (captionPopup != null)
+                        {
+                            captionPopup.Left = this.Left + (this.Width - captionPopup.Width) / 2;
+                            captionPopup.Top = this.Top + (this.Height - captionPopup.Height) / 2;
+                        }
+                    };
+                }
 
             }
         }
@@ -1075,5 +1142,41 @@ namespace Brat
             await Task.CompletedTask;
         }
 
+        private async void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = SearchTextBox.Text.Trim();
+
+            if (string.IsNullOrEmpty(query))
+            {
+                SearchPopup.IsOpen = false;
+                return;
+            }
+            if (query.Length > 2)
+            {
+                // Пример поиска по списку пользователей
+                await using (var context = new BratBaseContext())
+                {
+                    var results = await context.Users
+                    .Where(u => (u.FirstName.ToLower() + " " + u.SecondName.ToLower()).Contains(query) && u.Id != Myid).Select(u => new {
+                        u.Id,
+                        u.FirstName,
+                        u.SecondName,
+                        Username = u.Username
+                    })
+                    .ToListAsync();
+
+                    SearchResultsList.ItemsSource = results;
+                    SearchPopup.IsOpen = results.Count > 0;
+                }
+                Debug.WriteLine("Пенисы");
+
+            } 
+
+        }
+
+        private void SearchResultsList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+
+        }
     }
 }
