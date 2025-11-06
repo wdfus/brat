@@ -7,7 +7,7 @@
         Title="Brat" Height="700" Width="1100" MinHeight="600" MinWidth="900" WindowStartupLocation="CenterScreen"
         FontFamily="pack://application:,,,/Brat;component/Fonts/#SF Pro Rounded"        
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
-        Background="#2D2D2D" Loaded="Window_Loaded" KeyDown="Window_KeyDown" Closing="Window_Closing">
+        Background="#2D2D2D" Loaded="Window_Loaded" KeyDown="Window_KeyDown" Closing="Window_Closing" Icon="/Avatars/b.ico">
     <Window.Resources>
         <!-- Палитра -->
         <SolidColorBrush x:Key="Col.AppBg"     Color="#2D2D2D"/>
@@ -273,7 +273,7 @@
                PopupAnimation="Slide" Width="{Binding ActualWidth, ElementName=SearchTextBox}">
                             <Border Background="#2D2D2D" BorderBrush="#5A5A5A" BorderThickness="1" CornerRadius="6">
                                 <ListBox x:Name="SearchResultsList" Background="Transparent" BorderThickness="0"
-                         MouseLeftButtonUp="SearchResultsList_MouseLeftButtonUp">
+                         MouseLeftButtonUp="SearchResultsList_MouseLeftButtonUp" SelectionChanged="SearchResultsList_SelectionChanged">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <StackPanel Margin="8" Orientation="Vertical">
@@ -325,7 +325,7 @@
         Background="{DynamicResource Col.Side}"
         BorderThickness="0"
         x:Name="borderEnterField"
-        Visibility="Visible"
+        Visibility="Hidden"
         Margin="0,1,0,0"
         Height="Auto">
 

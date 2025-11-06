@@ -85,12 +85,12 @@ namespace Brat
                     else
                     {
                         Debug.WriteLine($"Неподдерживаемое сообщение: {message}");
-                    }
-
                 }
+
+            }
                 catch (Exception ex)
                 {
-                    StatusChanged?.Invoke($"Ошибка приёмника: {ex.Message}");
+                    StatusChanged?.Invoke($"Ошибка приёмника: {ex}");
                     break;
                 }
             }

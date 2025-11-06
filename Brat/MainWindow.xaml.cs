@@ -33,9 +33,13 @@ using Xceed.Wpf.Toolkit;
 using static Brat.CaptionPopup;
 using static System.Net.Mime.MediaTypeNames;
 using static System.Net.WebRequestMethods;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using Button = System.Windows.Controls.Button;
 using File = System.IO.File;
 using MessageBox = System.Windows.MessageBox;
 using Path = System.IO.Path;
+using TextBox = System.Windows.Controls.TextBox;
+using Window = System.Windows.Window;
 
 namespace Brat
 {
@@ -52,8 +56,9 @@ namespace Brat
         DateTime? FirstDate = null;
         private bool FirstLoadedMessages = false;
         private bool _isLoadingMessages = false;
+        private bool _IsNewChat = false;
         private int _lastLineCount = 1;
-        public static int Myid = 1;
+        public static int Myid = 2;
         private int SelectedToUserId;
         private int SelectedFromUserId;
         private int LoadedMessagesCount = 0;
@@ -83,6 +88,14 @@ namespace Brat
 
                 return null;
             }
+        }
+
+        public class SearchUserItem
+        {
+            public int Id { get; set; }
+            public string FirstName { get; set; }
+            public string SecondName { get; set; }
+            public string Username { get; set; }
         }
 
         public class UserClass()
@@ -137,7 +150,7 @@ namespace Brat
             _wsClient.MessageReceived += OnMessageReceived;
             _wsClient.StatusChanged += OnStatusChanged;
             //Myid = id;
-            _ = _wsClient.ConnectAsync($"ws://172.20.10.2:6789");
+            _ = _wsClient.ConnectAsync($"ws://192.168.1.108:6789");
             using (var context = new BratBaseContext())
             {
                 // 1️⃣ Чаты с пользователями
@@ -180,13 +193,13 @@ namespace Brat
                         LastMessageTime = lastMessage?.SentTime?.ToString() ?? "",
                         Status = lastMessage?.Status?.ToString() ?? ""
                     };
-                }).ToList();
+                }).ToList().OrderByDescending(x => x.LastMessageTime);
 
 
 
                 foreach (UserClass user in Result)
                 {
-                    var useraaaaaa = new UserRow(user, Myid);
+                    var useraaaaaa = new UserRow(user);
                     UsersList.Items.Add(useraaaaaa);
                 }
             }
@@ -372,6 +385,7 @@ namespace Brat
                         chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
                         LoadedMessagesCount += messages.Count;
                     }
+
                 }
 
 
@@ -501,6 +515,7 @@ namespace Brat
             {
                 if (userrow != SelectedUserRow)
                 {
+                    _IsNewChat = false;
                     if (SelectedUserRow != null)
                     {
                         SelectedUserRow.gridFather.Background = Brushes.Transparent;
@@ -535,6 +550,7 @@ namespace Brat
                 FirstDate = null;
                 LastDate = null;
                 await LoadMessages();
+                _IsNewChat = false;
                 FirstLoadedMessages = false;
                 if (SelectedUserRow != null && UsersList.Items.Contains(SelectedUserRow))
                 {
@@ -547,7 +563,7 @@ namespace Brat
 
         async private void SendMessage_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && button.Content == "➤")
+            if (sender is Button button && button.Content.ToString() == "➤")
             {
                 await SendMessageFuck(watermarkTextBox: mainTextBox);
             }
@@ -557,13 +573,14 @@ namespace Brat
         public async Task SendMessageFuck(List<CaptionPopup.SftpItem> sftps = null, WatermarkTextBox watermarkTextBox = null)
         {
             List<char> ForbiddenChars = new()
-    {
-        '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
-        '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
-        '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
-        '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
-        '\u007F'
-    };
+                {
+                    '\u0000','\u0001','\u0002','\u0003','\u0004','\u0005','\u0006','\u0007',
+                    '\u0008','\u0009','\u000A','\u000B','\u000C','\u000D','\u000E','\u000F',
+                    '\u0010','\u0011','\u0012','\u0013','\u0014','\u0015','\u0016','\u0017',
+                    '\u0018','\u0019','\u001A','\u001B','\u001C','\u001D','\u001E','\u001F',
+                    '\u007F'
+                };
+
             if (sftps != null)
             {
                 FilePath = sftps[0].Label;
@@ -577,6 +594,37 @@ namespace Brat
             await using var context = new BratBaseContext();
 
             DateTime sentTime = DateTime.Now;
+            if (_IsNewChat)
+            {
+                SelectedFromUserId = Myid;
+                if (ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) is TextBlock path)
+                    SelectedToUserId = (int)path.Tag;
+                Chat vagina = new Chat
+                {
+                    UserId1 = SelectedFromUserId,
+                    UserId2 = SelectedToUserId
+                };
+                await context.Chats.AddAsync(vagina);
+                await context.SaveChangesAsync();
+                User user = await context.Users.Where(x => x.Id == SelectedToUserId).FirstOrDefaultAsync();
+                SelectedChatId = vagina.ChatId;
+                ChatField.Children.Clear();
+                ChatField.HorizontalAlignment = HorizontalAlignment.Left;
+                ChatField.VerticalAlignment = VerticalAlignment.Bottom;
+                UserClass userClass = new UserClass()
+                {
+                    FirstName = user.FirstName,
+                    SecondName = user.SecondName,
+                    ChatId = vagina.ChatId,
+                    FromUserId = SelectedFromUserId,
+                    ToUserId = SelectedToUserId,
+                    LastText = mainTextBox.Text,
+                    LastMessageTime = sentTime.ToString(),
+                    LastMessageStatus = "notread",
+                };
+                UsersList.Items.Insert(0, new UserRow(userClass));
+
+            }
             //try
             //{
             // создаём сообщение
@@ -662,6 +710,7 @@ namespace Brat
             UpdateLastText(watermarkTextBox?.Text ?? "", SelectedToUserId);
             if (watermarkTextBox != null) watermarkTextBox.Text = string.Empty;
             chatScroll.ScrollToEnd();
+            FilePath = string.Empty;
             //}
             //catch (Exception ex)
             //{
@@ -719,21 +768,35 @@ namespace Brat
                     }
                     if (DateTime.TryParse(timeString, out DateTime time))
                     {
-                        Console.WriteLine(time.ToString("HH:mm"));
-
                         Debug.WriteLine($"Сообщение от {fromUserId}: {MessageText}");
                         UpdateLastText(MessageText, fromUserId);
                         if (SelectedToUserId == fromUserId)
                         {
-                            var receiver = new MessageCloud(timeString.ToString(), MessageText, "sender", MessageId, Myid, fromUserId, Status, FilePath: Atts); ;
+                            var receiver = new MessageCloud(timeString.ToString(), MessageText, "reciever", MessageId, Myid, fromUserId, Status, FilePath: Atts); ;
                             ChatField.Children.Add(receiver);
                         }
+                        return;
                     }
                 }
                 catch
                 {
 
                 }
+                int MessageId2 = doc.RootElement.GetProperty("id").GetInt32();
+                foreach (var messageCloud in ChatField.Children)
+                {
+                    if (messageCloud is MessageCloud cloud)
+                    {
+                        string tag = cloud.MessageId.Tag?.ToString();
+                        if (int.TryParse(tag, out int id) && id == MessageId2)
+                        {
+                            ChatField.Children.Remove(cloud);
+                            break; // если ты удаляешь один элемент, лучше прервать цикл
+                        }
+                    }
+                }
+                return;
+
 
             });
         }
@@ -826,53 +889,86 @@ namespace Brat
             }
         }
 
-        private void TextBlock_Click(object sender, RoutedEventArgs e)
+        private void DisplayUserInfo(UserClass userClass)
+        {
+            popup = new UserInfo(userClass);
+            popup.Owner = this;
+            popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
+            DimLayer.Visibility = Visibility.Visible;
+            var fadeIn = new DoubleAnimation(0, 0.3, TimeSpan.FromMilliseconds(200));
+            DimLayer.BeginAnimation(OpacityProperty, fadeIn);
+            popup.Opacity = 0;
+            popup.Loaded += (s, args) =>
+            {
+                var popupFade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
+                popup.BeginAnimation(Window.OpacityProperty, popupFade);
+            };
+
+            popup.Closed += (s, args) =>
+            {
+                var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
+                FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
+                DimLayer.BeginAnimation(OpacityProperty, FadeOut);
+                popup = null;
+            };
+
+            popup.Show();
+
+            if (popup != null)
+            {
+                this.LocationChanged += (s, e) =>
+                {
+                    if (popup != null)
+                    {
+                        popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                        popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                    }
+                };
+
+                this.SizeChanged += (s, e) =>
+                {
+                    if (popup != null)
+                    {
+                        popup.Left = this.Left + (this.Width - popup.Width) / 2;
+                        popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                    }
+                };
+            }
+        }
+        private async void TextBlock_Click(object sender, RoutedEventArgs e)
         {
             if (SelectedUserRow != null && SelectedUserRow is UserRow userrow)
             {
-                popup = new UserInfo(userrow.ThisUser);
-                popup.Owner = this;
-                popup.WindowStartupLocation = System.Windows.WindowStartupLocation.CenterOwner;
-                DimLayer.Visibility = Visibility.Visible;
-                var fadeIn = new DoubleAnimation(0, 0.3, TimeSpan.FromMilliseconds(200));
-                DimLayer.BeginAnimation(OpacityProperty, fadeIn);
-                popup.Opacity = 0;
-                popup.Loaded += (s, args) =>
+                DisplayUserInfo(userrow.ThisUser);
+            }
+            else
+            {
+                try
                 {
-                    var popupFade = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(200));
-                    popup.BeginAnimation(Window.OpacityProperty, popupFade);
-                };
-
-                popup.Closed += (s, args) =>
-                {
-                    var FadeOut = new DoubleAnimation(0.3, 0, TimeSpan.FromMilliseconds(200));
-                    FadeOut.Completed += (s2, e2) => DimLayer.Visibility = Visibility.Collapsed;
-                    DimLayer.BeginAnimation(OpacityProperty, FadeOut);
-                    popup = null;
-                };
-
-                popup.Show();
-
-                if (popup != null)
-                {
-                    this.LocationChanged += (s, e) =>
+                    if (ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) is TextBlock path)
                     {
-                        if (popup != null)
+                        object Tag = path.Tag;
+                        if (int.TryParse(Tag?.ToString(), out int IntTag))
                         {
-                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
-                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
+                            await using (var context = new BratBaseContext())
+                            {
+                                var user = context.Users.Where(x => x.Id == IntTag).Select(x => new UserClass
+                                {
+                                    AboutSelf = x.AboutSelf,
+                                    Birthday = x.Birthday.ToString(),
+                                    FirstName = x.FirstName,
+                                    SecondName = x.SecondName,
+                                    PhoneNumber = x.PhoneNumber,
+                                    Username = x.Username,
+                                    
+                                }).FirstOrDefault();
+                                DisplayUserInfo(user);
+                            }
                         }
-                    };
+                    }
 
-                    this.SizeChanged += (s, e) =>
-                    {
-                        if (popup != null)
-                        {
-                            popup.Left = this.Left + (this.Width - popup.Width) / 2;
-                            popup.Top = this.Top + (this.Height - popup.Height) / 2;
-                        }
-                    };
                 }
+                catch { }
             }
         }
 
@@ -963,7 +1059,7 @@ namespace Brat
             }
 
             // ENTER (без Shift) — отправляем и блокируем дальнейшую обработку
-            if (e.Key == Key.Enter)
+            if (e.Key == Key.Enter && SendMessage.Content.ToString() != "🎤")
             {
                 e.Handled = true; // предотвращаем вставку '\n'
                 await SendMessageFuck(watermarkTextBox: mainTextBox); // или SendMessageFuck(), в зависимости от сигнатуры
@@ -1057,6 +1153,7 @@ namespace Brat
 
                 if (isButtonHeld) // если кнопку всё ещё держат — начинаем запись
                 {
+                    button.Foreground = Brushes.Green;
                     await StartRecordingAsync();
                 }
             }
@@ -1071,6 +1168,7 @@ namespace Brat
 
                 if (isRecording)
                 {
+                    button.Foreground = Brushes.Red;
                     await StopRecordingAndUploadAsync();
                 }
                 else if (holdTime.TotalMilliseconds < HoldThresholdMs)
@@ -1084,6 +1182,7 @@ namespace Brat
         {
             try
             {
+                mainTextBox.IsEnabled = false;
                 isRecording = true;
                 string tempDir = Path.GetTempPath();
                 string fileName = $"voice_{DateTime.Now:yyyyMMdd_HHmmss}.wav";
@@ -1129,8 +1228,13 @@ namespace Brat
                 string ftpServer = "31.31.197.33";
                 string username = "u3309507";
                 string password = "kSKi8o2D3Yy19h3r";
-                string remoteDir = "/var/www/u3309507/data/attachments/voices";
-                string remotePath = $"{remoteDir}/{Path.GetFileName(tempFilePath)}";
+                string remoteDir = "/var/www/u3309507/data/attachments";
+                string year = DateTime.Now.Year.ToString();
+                string month = DateTime.Now.Month.ToString("D2");
+                string day = DateTime.Now.Day.ToString("D2");
+                string folderPath = string.Join("/", remoteDir.TrimEnd('/'), year, month, day);
+                Debug.WriteLine(folderPath);
+                string remotePath = $"{folderPath}/{Path.GetFileName(tempFilePath)}";
                 ISftpFile sftpFile = null;
 
                 // Асинхронная отправка на SFTP
@@ -1157,7 +1261,10 @@ namespace Brat
                         new SftpItem(remotePath, sftpFile)
                     };
                 await SendMessageFuck(d, mainTextBox);
+                SendMessage.Foreground = Brushes.White;
+                mainTextBox.IsEnabled = true;
                 MessageBox.Show("🎤 Голосовое сообщение отправлено!");
+                FilePath = string.Empty;
             }
             catch (Exception ex)
             {
@@ -1167,41 +1274,128 @@ namespace Brat
             await Task.CompletedTask;
         }
 
+        private CancellationTokenSource _searchCts;
+
         private async void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             string query = SearchTextBox.Text.Trim();
 
+            // Закрываем popup, если пусто
             if (string.IsNullOrEmpty(query))
             {
                 SearchPopup.IsOpen = false;
                 return;
             }
+
+            // Прерываем предыдущий запрос (если пользователь быстро печатает)
+            _searchCts?.Cancel();
+            _searchCts = new CancellationTokenSource();
+            var token = _searchCts.Token;
+
+            // Только после 3 символов
             if (query.Length > 2)
             {
-                // Пример поиска по списку пользователей
-                await using (var context = new BratBaseContext())
+                try
                 {
+                    await using var context = new BratBaseContext();
+
+                    // Нормализуем регистр
+                    var lowerQuery = query.ToLower();
+
+                    // Используем EF.Functions.Like (оптимально)
                     var results = await context.Users
-                    .Where(u => (u.FirstName.ToLower() + " " + u.SecondName.ToLower()).Contains(query) && u.Id != Myid).Select(u => new {
-                        u.Id,
-                        u.FirstName,
-                        u.SecondName,
-                        Username = u.Username
-                    })
-                    .ToListAsync();
+                         .Where(u => u.Id != Myid &&
+                         EF.Functions.Like(
+                         (u.FirstName + " " + u.SecondName).ToLower(),
+                         $"%{lowerQuery}%"))
+                         .Select(u => new SearchUserItem
+                         {
+                             Id = u.Id,
+                             FirstName = u.FirstName.Trim(),
+                             SecondName = u.SecondName,
+                             Username = u.Username
+                         })
+                         .ToListAsync(token);
+                    if (!token.IsCancellationRequested)
+                    {
+                        SearchResultsList.ItemsSource = results;
+                        SearchPopup.IsOpen = results.Count > 0;
+                    }
 
-                    SearchResultsList.ItemsSource = results;
-                    SearchPopup.IsOpen = results.Count > 0;
+
+                    if (!token.IsCancellationRequested)
+                    {
+                        SearchResultsList.ItemsSource = results;
+                        SearchPopup.IsOpen = results.Count > 0;
+                    }
+
+                    Debug.WriteLine($"Найдено: {results.Count}");
                 }
-                Debug.WriteLine("Пенисы");
-
-            } 
-
+                catch (OperationCanceledException)
+                {
+                    // Игнорируем отменённый поиск
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Ошибка поиска: {ex.Message}");
+                }
+            }
         }
 
-        private void SearchResultsList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+
+        private async void SearchResultsList_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
 
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var clickedPoint = e.GetPosition(listBox);
+            var element = listBox.InputHitTest(clickedPoint) as DependencyObject;
+
+            while (element != null && !(element is ListBoxItem))
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            if (element is ListBoxItem item && item.DataContext != null)
+            {
+
+                if (item.Content is not SearchUserItem item1)
+                    return;
+                int targetId = item1.Id;
+                SearchPopup.IsOpen = false;
+
+                SearchTextBox.Text = string.Empty;
+                await using (var context = new BratBaseContext())
+                {
+                    var chat = context.Chats.Where(x => (x.UserId2 == targetId && x.UserId1 == Myid) || (x.UserId1 == targetId && x.UserId2 == Myid)).FirstOrDefault();
+                    if (chat != null)
+                    {
+
+                        SearchPopup.IsOpen = false;
+                        SearchResultsList.ItemsSource = null;
+                        await LoadMessages(targetId, chat.ChatId, false);
+                    }
+                    else
+                    {
+                        SetFaker("Сообщений пока нет...");
+                        SetHeaderText($"{item1.FirstName} {item1.SecondName}");
+                        TopRow.Visibility = Visibility.Visible;
+                        borderEnterField.Visibility = Visibility.Visible;
+                        chatScroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
+                        if (ButtonHeader.Template.FindName("HeaderChatText", ButtonHeader) is TextBlock path)
+                            path.Tag = targetId;
+                        _IsNewChat = true;
+                    }
+
+                }
+
+            }
+        
+        }
+
+        private async void SearchResultsList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
         }
     }
 }

@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Avatars\b.ico" />
+    <None Remove="Avatars\b.png" />
     <None Remove="Fonts\SF-Pro-Rounded-Black.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Bold.otf" />
     <None Remove="Fonts\SF-Pro-Rounded-Heavy.otf" />
@@ -44,6 +46,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Avatars\b.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Avatars\b.png" />
     <Resource Include="Fonts\MenuIcon.apng">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -82,11 +88,6 @@
 
   <ItemGroup>
     <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="attachments\2025\" />
-    <Folder Include="Avatars\" />
   </ItemGroup>
 
 

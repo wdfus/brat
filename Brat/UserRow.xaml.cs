@@ -24,10 +24,10 @@ namespace Brat
     public partial class UserRow : UserControl
     {
         public MainWindow.UserClass ThisUser { get; set; }
-        public UserRow(MainWindow.UserClass user, int CurrentId)
+        public UserRow(MainWindow.UserClass user)
         {
             InitializeComponent();
-            nameOfUser.Text = user.FirstName + " " + user.SecondName + " " + user.LastMessageStatus;
+            nameOfUser.Text = user.FirstName + " " + user.SecondName;
             LastUserText.Text = user.LastText;
             gridFather.Tag = user.FromUserId;
             this.Tag = user.ChatId;

@@ -111,12 +111,31 @@ namespace Brat
             {
                 User user = await context.Users.Where(x => x.Id == UserId).FirstOrDefaultAsync();
                 var UN = await context.Users.Where(x => x.Username == UsernameTextBox.Text).FirstOrDefaultAsync();
-                if (UN.Id != UserId)
+                if (UN != null)
                 {
-                    MessageBox.Show("Используйте другое имя пользователя!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
+                    if (UN.Id != UserId)
+                    {
+                        MessageBox.Show("Используйте другое имя пользователя!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+                    if (user != null)
+                    {
+                        user.PhoneNumber = PhoneNumberTextBox.Text;
+                        user.FirstName = NameTextBox.Text;
+                        user.SecondName = SecondTextBox.Text;
+                        user.Username = UsernameTextBox.Text;
+                        user.AboutSelf = AboutSelfTextBox.Text;
+                        user.Birthday = string.IsNullOrWhiteSpace(DoBTextBox.Text) ? null : DateOnly.Parse(DoBTextBox.Text);
+                        await context.SaveChangesAsync();
+                        CurrentUser.PhoneNumber = PhoneNumberTextBox.Text;
+                        CurrentUser.FirstName = NameTextBox.Text;
+                        CurrentUser.SecondName = SecondTextBox.Text;
+                        CurrentUser.Username = UsernameTextBox.Text;
+                        CurrentUser.AboutSelf = AboutSelfTextBox.Text;
+                        CurrentUser.Birthday = string.IsNullOrWhiteSpace(DoBTextBox.Text) ? null : DoBTextBox.Text;
+                    }
                 }
-                if (user != null)
+                else
                 {
                     user.PhoneNumber = PhoneNumberTextBox.Text;
                     user.FirstName = NameTextBox.Text;
