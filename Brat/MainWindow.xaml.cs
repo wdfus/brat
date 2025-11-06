@@ -695,21 +695,46 @@ namespace Brat
             Dispatcher.Invoke(() =>
             {
                 using var doc = JsonDocument.Parse(message);
-                int MessageId = doc.RootElement.GetProperty("id").GetInt32();
-                string timeString = doc.RootElement.GetProperty("sent_time").ToString();
-
-                if (DateTime.TryParse(timeString, out DateTime time))
+                try
                 {
-                    Console.WriteLine(time.ToString("HH:mm"));
+                    string Atts = null;
+                    string MessageText = null;
+                    int MessageId = doc.RootElement.GetProperty("id").GetInt32();
+                    string timeString = doc.RootElement.GetProperty("sent_time").ToString();
+                    int fromUserId = doc.RootElement.GetProperty("from_user_id").GetInt32();
+                    string Status = doc.RootElement.GetProperty("status").GetString();
+                    try
+                    {
+                        Atts = doc.RootElement.GetProperty("atts").ToString();
+                        MessageText = doc.RootElement.GetProperty("message_text").ToString();
+                    }
+                    catch { }
+                    if (MessageText == null)
+                    {
+                        MessageText = "";
+                    }
+                    if (Atts == null)
+                    {
+                        Atts = "";
+                    }
+                    if (DateTime.TryParse(timeString, out DateTime time))
+                    {
+                        Console.WriteLine(time.ToString("HH:mm"));
 
-                    /*                    Debug.WriteLine($"Сообщение от {fromUserId}: {text}");
-                                        UpdateLastText(text, fromUserId);
-                                        if (SelectedToUserId == fromUserId)
-                                        {
-                                            var receiver = new MessageCloud(timeString.ToString(), text, "sender", MessageId, Myid, fromUserId, Status); ;
-                                            ChatField.Children.Add(receiver);
-                                        }*/
+                        Debug.WriteLine($"Сообщение от {fromUserId}: {MessageText}");
+                        UpdateLastText(MessageText, fromUserId);
+                        if (SelectedToUserId == fromUserId)
+                        {
+                            var receiver = new MessageCloud(timeString.ToString(), MessageText, "sender", MessageId, Myid, fromUserId, Status, FilePath: Atts); ;
+                            ChatField.Children.Add(receiver);
+                        }
+                    }
                 }
+                catch
+                {
+
+                }
+
             });
         }
 
@@ -721,9 +746,9 @@ namespace Brat
             });
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private async void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            _wsClient.CloseWebSocketAsync(_wsClient._client);
+            await _wsClient.CloseWebSocketAsync(_wsClient._client);
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
